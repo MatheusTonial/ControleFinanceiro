@@ -1,8 +1,12 @@
 package com.tonial.controlefinanceiro.database
 
+import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.tonial.controlefinanceiro.entity.Categorias
+import com.tonial.controlefinanceiro.entity.Contas
+import com.tonial.controlefinanceiro.entity.TipoCategoria
 
 class DatabaseHandler (context: Context) : 
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
@@ -69,5 +73,52 @@ class DatabaseHandler (context: Context) :
         if (oldVersion < 2) {
             //db?.execSQL("ALTER TABLE $TABLE_NAME ADD COLUMN email TEXT;")
         }
+    }
+
+    fun addCategoria(categoria: Categorias): Long {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(KEY_DESCRICAO_CATEGORIA, categoria.descricao)
+            put(KEY_TIPO_CATEGORIA, categoria.tipo.name)
+            put(KEY_ORDEM_CATEGORIA, categoria.ordem)
+        }
+        val id = db.insert(TABLE_CATEGORIAS, null, values)
+        db.close()
+        return id
+    }
+
+    fun getAllCategorias(): List<Categorias> {
+        val categoriasList = ArrayList<Categorias>()
+        val selectQuery = "SELECT * FROM $TABLE_CATEGORIAS ORDER BY $KEY_ORDEM_CATEGORIA ASC, $KEY_ID_CATEGORIA ASC"
+        val db = this.readableDatabase
+        val cursor = db.rawQuery(selectQuery, null)
+        if (cursor.moveToFirst()) {
+            do {
+                val categoria = Categorias(
+                    _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CATEGORIA)),
+                    descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA)),
+                    tipo = TipoCategoria.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))),
+                    ordem = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ORDEM_CATEGORIA))
+                )
+                categoriasList.add(categoria)
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        db.close()
+        return categoriasList
+    }
+
+    fun addConta(conta: Contas): Long {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(KEY_DESCRICAO_CONTA, conta.descricao)
+            put(KEY_VALOR_CONTA, conta.valor)
+            put(KEY_DATA_CONTA, conta.data.toString())
+            put(KEY_ID_RECORRENTE_CONTA, conta.idRecorrente)
+            put(KEY_CATEGORIA_CONTA, conta.categoriaId)
+        }
+        val id = db.insert(TABLE_CONTAS, null, values)
+        db.close()
+        return id
     }
 }

@@ -8,5 +8,5 @@ data class Contas (
     val valor: Double,
     val data: LocalDate,
     val idRecorrente: Int,
-    val categoria: Categorias
+    val categoriaId: Long
 )
