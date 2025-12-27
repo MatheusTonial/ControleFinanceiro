@@ -1,0 +1,73 @@
+package com.tonial.controlefinanceiro.database
+
+import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+
+class DatabaseHandler (context: Context) : 
+    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+
+    companion object {
+        const val DATABASE_NAME = "bdfile.sqlite"
+        const val DATABASE_VERSION = 2
+
+        // Tabela Categorias
+        const val TABLE_CATEGORIAS = "categorias"
+        const val KEY_ID_CATEGORIA = "_id"
+        const val KEY_DESCRICAO_CATEGORIA = "descricao"
+        const val KEY_COR_CATEGORIA = "cor"
+        const val KEY_TIPO_CATEGORIA = "tipo"
+        const val KEY_ORDEM_CATEGORIA = "ordem"
+
+        // Tabela Contas
+        const val TABLE_CONTAS = "contas"
+        const val KEY_ID_CONTA = "_id"
+        const val KEY_DESCRICAO_CONTA = "descricao"
+        const val KEY_VALOR_CONTA = "valor"
+        const val KEY_DATA_CONTA = "data"
+        const val KEY_ID_RECORRENTE_CONTA = "idRecorrente"
+        const val KEY_CATEGORIA_CONTA = "categoria_id"
+    }
+
+    override fun onCreate(db: SQLiteDatabase?) {
+        val createCategoriaTable = "CREATE TABLE $TABLE_CATEGORIAS(" +
+                "$KEY_ID_CATEGORIA INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "$KEY_DESCRICAO_CATEGORIA TEXT," +
+                "$KEY_COR_CATEGORIA TEXT," +
+                "$KEY_TIPO_CATEGORIA TEXT," +
+                "$KEY_ORDEM_CATEGORIA INTEGER)"
+        db?.execSQL(createCategoriaTable)
+
+        // Inserir categorias iniciais
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Mercado', '#80d1b5', 'Perda', 0)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Alimentação', '#e05b4c', 'Perda', 1)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Assinaturas', '#9C27B0', 'Perda', 2)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Condominio', '#7a5520', 'Perda', 3)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Internet', '#3f8eb5', 'Perda', 4)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Lazer', '#9bf589', 'Perda', 5)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Luz', '#ebd849', 'Perda', 6)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Pessoal', '#b1c7c9', 'Perda', 7)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Saude', '#b80802', 'Perda', 8)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Transporte', '#354f36', 'Perda', 9)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Investimentos', '#97f52a', 'Perda', 10)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_COR_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Outros', '#12120f', 'Perda', 11)")
+
+
+        val createContaTable = "CREATE TABLE $TABLE_CONTAS(" +
+                "$KEY_ID_CONTA INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "$KEY_DESCRICAO_CONTA TEXT," +
+                "$KEY_VALOR_CONTA REAL," +
+                "$KEY_DATA_CONTA TEXT," +
+                "$KEY_ID_RECORRENTE_CONTA INTEGER," +
+                "$KEY_CATEGORIA_CONTA INTEGER," +
+                "FOREIGN KEY($KEY_CATEGORIA_CONTA) REFERENCES $TABLE_CATEGORIAS($KEY_ID_CATEGORIA))"
+        db?.execSQL(createContaTable)
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int ) {
+        //if para aplicar as alterações de forma incremental a cada nova versão do banco de dados.
+        if (oldVersion < 2) {
+            //db?.execSQL("ALTER TABLE $TABLE_NAME ADD COLUMN email TEXT;")
+        }
+    }
+}
