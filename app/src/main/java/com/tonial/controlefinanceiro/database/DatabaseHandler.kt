@@ -186,7 +186,7 @@ class DatabaseHandler (context: Context) :
         val lancamentos = mutableListOf<UltimoLancamento>()
         val db = this.readableDatabase
         val query = """
-            SELECT T2.$KEY_DESCRICAO_CONTA, T1.$KEY_DESCRICAO_CATEGORIA, T2.$KEY_VALOR_CONTA, T2.$KEY_DATA_CONTA
+            SELECT T2.$KEY_DESCRICAO_CONTA, T1.$KEY_DESCRICAO_CATEGORIA, T2.$KEY_VALOR_CONTA, T2.$KEY_DATA_CONTA, T1.$KEY_TIPO_CATEGORIA
             FROM $TABLE_CATEGORIAS T1
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE date(T2.$KEY_DATA_CONTA) <= date('now')
@@ -200,7 +200,8 @@ class DatabaseHandler (context: Context) :
                 val categoria = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA))
                 val valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA))
                 val data = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))
-                lancamentos.add(UltimoLancamento(descricao, categoria, BigDecimal(valor), data))
+                val tipo = cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))
+                lancamentos.add(UltimoLancamento(descricao, categoria, BigDecimal(valor), data, tipo))
             } while (cursor.moveToNext())
         }
         cursor.close()

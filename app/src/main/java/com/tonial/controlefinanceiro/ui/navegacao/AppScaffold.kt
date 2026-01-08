@@ -3,9 +3,11 @@ package com.tonial.controlefinanceiro.ui.navegacao
 import android.widget.Toast
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
@@ -53,10 +55,9 @@ fun AppScaffold() {
     val currentRoute = navBackStackEntry?.destination?.route
 
     val title = when (currentRoute) {
-        Routes.DASHBOARD -> "Dashboard"
         Routes.LANCAMENTO_CONTA -> "Lançamento de Conta"
         Routes.CADASTRO_CATEGORIA -> "Cadastro de Categoria"
-        else -> "Controle Financeiro"
+        else -> "Dashboard"
     }
 
     ModalNavigationDrawer(
@@ -102,6 +103,13 @@ fun AppScaffold() {
                         }
                     }
                 )
+            },
+            floatingActionButton = {
+                if (currentRoute == Routes.DASHBOARD) {
+                    FloatingActionButton(onClick = { navController.navigate(Routes.LANCAMENTO_CONTA) }) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Lançamento")
+                    }
+                }
             }
         ) { paddingValues ->
             NavHost(
@@ -110,11 +118,7 @@ fun AppScaffold() {
                 modifier = Modifier.padding(paddingValues)
             ) {
                 composable(Routes.DASHBOARD) {
-                    DashboardScreen(
-                        onAddLancamento = {
-                            navController.navigate(Routes.LANCAMENTO_CONTA)
-                        }
-                    )
+                    DashboardScreen()
                 }
                 composable(Routes.LANCAMENTO_CONTA) {
                     val categorias = remember { banco.getAllCategorias() }
