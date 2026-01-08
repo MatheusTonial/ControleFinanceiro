@@ -28,11 +28,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.tonial.controlefinanceiro.database.DatabaseHandler
 import com.tonial.controlefinanceiro.model.FluxoViewModel
+import com.tonial.controlefinanceiro.ui.dashboard.DashboardScreen
 import com.tonial.controlefinanceiro.ui.telas.TelaCategoria
 import com.tonial.controlefinanceiro.ui.telas.TelaLancamentoConta
 import kotlinx.coroutines.launch
 
 object Routes {
+    const val DASHBOARD = "dashboard"
     const val LANCAMENTO_CONTA = "lancamento_conta"
     const val CADASTRO_CATEGORIA = "cadastro_categoria"
 }
@@ -51,6 +53,7 @@ fun AppScaffold() {
     val currentRoute = navBackStackEntry?.destination?.route
 
     val title = when (currentRoute) {
+        Routes.DASHBOARD -> "Dashboard"
         Routes.LANCAMENTO_CONTA -> "Lançamento de Conta"
         Routes.CADASTRO_CATEGORIA -> "Cadastro de Categoria"
         else -> "Controle Financeiro"
@@ -60,6 +63,14 @@ fun AppScaffold() {
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
+                NavigationDrawerItem(
+                    label = { Text(text = "Dashboard") },
+                    selected = currentRoute == Routes.DASHBOARD,
+                    onClick = { 
+                        navController.navigate(Routes.DASHBOARD)
+                        scope.launch { drawerState.close() }
+                    }
+                )
                 NavigationDrawerItem(
                     label = { Text(text = "Lançamento de Conta") },
                     selected = currentRoute == Routes.LANCAMENTO_CONTA,
@@ -95,9 +106,16 @@ fun AppScaffold() {
         ) { paddingValues ->
             NavHost(
                 navController = navController, 
-                startDestination = Routes.LANCAMENTO_CONTA,
+                startDestination = Routes.DASHBOARD,
                 modifier = Modifier.padding(paddingValues)
             ) {
+                composable(Routes.DASHBOARD) {
+                    DashboardScreen(
+                        onAddLancamento = {
+                            navController.navigate(Routes.LANCAMENTO_CONTA)
+                        }
+                    )
+                }
                 composable(Routes.LANCAMENTO_CONTA) {
                     val categorias = remember { banco.getAllCategorias() }
                     TelaLancamentoConta(

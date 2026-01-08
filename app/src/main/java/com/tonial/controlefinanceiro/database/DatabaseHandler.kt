@@ -7,6 +7,9 @@ import android.database.sqlite.SQLiteOpenHelper
 import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.entity.Contas
 import com.tonial.controlefinanceiro.entity.TipoCategoria
+import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
+import com.tonial.controlefinanceiro.entity.UltimoLancamento
+import java.math.BigDecimal
 
 class DatabaseHandler (context: Context) : 
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
@@ -132,5 +135,76 @@ class DatabaseHandler (context: Context) :
         val id = db.insert(TABLE_CONTAS, null, values)
         db.close()
         return id
+    }
+    
+    fun getTotalGastoMesAtual(): BigDecimal {
+        val db = this.readableDatabase
+        val query = """
+            SELECT SUM(T2.$KEY_VALOR_CONTA)
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
+        """
+        val cursor = db.rawQuery(query, null)
+        var total = BigDecimal.ZERO
+        if (cursor.moveToFirst()) {
+            total = BigDecimal(cursor.getDouble(0))
+        }
+        cursor.close()
+        db.close()
+        return total
+    }
+
+    fun getCategoriasMaisGastasMesAtual(): List<CategoriaMaisGasta> {
+        val categorias = mutableListOf<CategoriaMaisGasta>()
+        val db = this.readableDatabase
+        val query = """
+            SELECT T1.$KEY_DESCRICAO_CATEGORIA, SUM(T2.$KEY_VALOR_CONTA) as total
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
+            GROUP BY T1.$KEY_ID_CATEGORIA
+            ORDER BY total DESC
+            LIMIT 5
+        """
+        val cursor = db.rawQuery(query, null)
+        if (cursor.moveToFirst()) {
+            do {
+                val categoria = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA))
+                val total = cursor.getDouble(cursor.getColumnIndexOrThrow("total"))
+                categorias.add(CategoriaMaisGasta(categoria, BigDecimal(total)))
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        db.close()
+        return categorias
+    }
+
+    fun getUltimosLancamentos(): List<UltimoLancamento> {
+        val lancamentos = mutableListOf<UltimoLancamento>()
+        val db = this.readableDatabase
+        val query = """
+            SELECT T2.$KEY_DESCRICAO_CONTA, T1.$KEY_DESCRICAO_CATEGORIA, T2.$KEY_VALOR_CONTA, T2.$KEY_DATA_CONTA
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE date(T2.$KEY_DATA_CONTA) <= date('now')
+            ORDER BY T2.$KEY_DATA_CONTA DESC
+            LIMIT 5
+        """
+        val cursor = db.rawQuery(query, null)
+        if (cursor.moveToFirst()) {
+            do {
+                val descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CONTA))
+                val categoria = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA))
+                val valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA))
+                val data = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))
+                lancamentos.add(UltimoLancamento(descricao, categoria, BigDecimal(valor), data))
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        db.close()
+        return lancamentos
     }
 }
