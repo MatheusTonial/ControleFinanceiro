@@ -19,14 +19,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
 import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
 import java.math.BigDecimal
 import java.text.NumberFormat
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
@@ -126,14 +129,23 @@ fun LancamentoRow(lancamento: UltimoLancamento) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+//            Column(modifier = Modifier.weight(1f)) {
+//                Text(text = lancamento.descricao, style = MaterialTheme.typography.bodyLarge)
+//                Text(text = lancamento.categoria, style = MaterialTheme.typography.bodyMedium)
+//            }
+//            Text(
+//                text = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(lancamento.valor),
+//                style = MaterialTheme.typography.bodyLarge,
+//                color = if (lancamento.tipo == TipoCategoria.Perda.name) Color.Red else Color.Green
+//            )
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = lancamento.descricao, style = MaterialTheme.typography.bodyLarge)
-                Text(text = lancamento.categoria, style = MaterialTheme.typography.bodyMedium)
+                Text(lancamento.descricao, fontWeight = FontWeight.SemiBold)
+                Text("${lancamento.data.format(DateTimeFormatter.ofPattern("dd/MM"))} • ${lancamento.categoria}", fontSize = 12.sp)
             }
             Text(
-                text = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(lancamento.valor),
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (lancamento.tipo == TipoCategoria.Perda.name) Color.Red else Color.Green
+                text = NumberFormat.getCurrencyInstance(Locale("pt", "BR")).format(lancamento.valor * -1.toBigDecimal()),
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
