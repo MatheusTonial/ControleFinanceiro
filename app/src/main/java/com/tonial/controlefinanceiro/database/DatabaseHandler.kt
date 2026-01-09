@@ -72,12 +72,6 @@ class DatabaseHandler (context: Context) :
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int ) {
         if (oldVersion < 2) {
             // Migrations for version 2
-        }
-        if (oldVersion < 3) {
-            // Migrations for version 3
-            // The previous implementation was unnecessarily complex and performed a table recreation without any schema changes.
-            // For future migrations, you can use ALTER TABLE to add or modify columns without losing data.
-            // Example for adding a new column:
             // db?.execSQL("ALTER TABLE $TABLE_CATEGORIAS ADD COLUMN new_column TEXT;")
         }
     }
