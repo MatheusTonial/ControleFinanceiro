@@ -70,23 +70,15 @@ class DatabaseHandler (context: Context) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int ) {
-        //if para aplicar as alterações de forma incremental a cada nova versão do banco de dados.
         if (oldVersion < 2) {
-            //db?.execSQL("ALTER TABLE $TABLE_NAME ADD COLUMN email TEXT;")
+            // Migrations for version 2
         }
         if (oldVersion < 3) {
-            val createCategoriaTableNew = "CREATE TABLE ${TABLE_CATEGORIAS}_new(" +
-                    "$KEY_ID_CATEGORIA INTEGER PRIMARY KEY AUTOINCREMENT," +
-                    "$KEY_DESCRICAO_CATEGORIA TEXT," +
-                    "$KEY_TIPO_CATEGORIA TEXT," +
-                    "$KEY_ORDEM_CATEGORIA INTEGER)"
-            db?.execSQL(createCategoriaTableNew)
-
-            db?.execSQL("INSERT INTO ${TABLE_CATEGORIAS}_new ($KEY_ID_CATEGORIA, $KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) SELECT $KEY_ID_CATEGORIA, $KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA FROM $TABLE_CATEGORIAS")
-
-            db?.execSQL("DROP TABLE $TABLE_CATEGORIAS")
-
-            db?.execSQL("ALTER TABLE ${TABLE_CATEGORIAS}_new RENAME TO $TABLE_CATEGORIAS")
+            // Migrations for version 3
+            // The previous implementation was unnecessarily complex and performed a table recreation without any schema changes.
+            // For future migrations, you can use ALTER TABLE to add or modify columns without losing data.
+            // Example for adding a new column:
+            // db?.execSQL("ALTER TABLE $TABLE_CATEGORIAS ADD COLUMN new_column TEXT;")
         }
     }
 
@@ -136,7 +128,7 @@ class DatabaseHandler (context: Context) :
         db.close()
         return id
     }
-    
+
     fun getTotalGastoMesAtual(): BigDecimal {
         val db = this.readableDatabase
         val query = """
