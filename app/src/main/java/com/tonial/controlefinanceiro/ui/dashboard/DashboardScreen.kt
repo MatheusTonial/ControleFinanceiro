@@ -29,6 +29,7 @@ import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
 import java.math.BigDecimal
 import java.text.NumberFormat
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -129,22 +130,27 @@ fun LancamentoRow(lancamento: UltimoLancamento) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-//            Column(modifier = Modifier.weight(1f)) {
-//                Text(text = lancamento.descricao, style = MaterialTheme.typography.bodyLarge)
-//                Text(text = lancamento.categoria, style = MaterialTheme.typography.bodyMedium)
-//            }
-//            Text(
-//                text = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(lancamento.valor),
-//                style = MaterialTheme.typography.bodyLarge,
-//                color = if (lancamento.tipo == TipoCategoria.Perda.name) Color.Red else Color.Green
-//            )
             Column(modifier = Modifier.weight(1f)) {
                 Text(lancamento.descricao, fontWeight = FontWeight.SemiBold)
-                Text("${lancamento.data.format(DateTimeFormatter.ofPattern("dd/MM"))} • ${lancamento.categoria}", fontSize = 12.sp)
+
+                val dataFormatada = try {
+                    LocalDate.parse(lancamento.data).format(DateTimeFormatter.ofPattern("dd/MM"))
+                } catch (e: Exception) {
+                    lancamento.data
+                }
+
+                Text("$dataFormatada • ${lancamento.categoria}", fontSize = 12.sp)
             }
+
+            val isPerda = lancamento.tipo == TipoCategoria.Perda.name
+            val cor = if (isPerda) MaterialTheme.colorScheme.error else Color(0xFF388E3C)
+            val numberFormat = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
+            val valorFormatado = numberFormat.format(lancamento.valor)
+            val textoValor = if (isPerda) "- $valorFormatado" else "+ $valorFormatado"
+
             Text(
-                text = NumberFormat.getCurrencyInstance(Locale("pt", "BR")).format(lancamento.valor * -1.toBigDecimal()),
-                color = MaterialTheme.colorScheme.error,
+                text = textoValor,
+                color = cor,
                 fontWeight = FontWeight.SemiBold
             )
         }
