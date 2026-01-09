@@ -203,4 +203,47 @@ class DatabaseHandler private constructor(context: Context) :
         }
         return lancamentos
     }
+    
+    fun getHistorico(
+    dataInicio: String,
+    dataFim: String,
+    categoriaId: Long? = null
+): List<UltimoLancamento> {
+    val lancamentos = mutableListOf<UltimoLancamento>()
+    val db = this.readableDatabase
+    var query = """
+        SELECT
+            T2.$KEY_DESCRICAO_CONTA AS lancamento_descricao,
+            T1.$KEY_DESCRICAO_CATEGORIA AS categoria_descricao,
+            T2.$KEY_VALOR_CONTA,
+            T2.$KEY_DATA_CONTA,
+            T1.$KEY_TIPO_CATEGORIA
+        FROM $TABLE_CATEGORIAS T1
+        INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+        WHERE date(T2.$KEY_DATA_CONTA) BETWEEN date(?) AND date(?)
+    """
+
+    val selectionArgs = mutableListOf(dataInicio, dataFim)
+
+    if (categoriaId != null) {
+        query += " AND T1.$KEY_ID_CATEGORIA = ?"
+        selectionArgs.add(categoriaId.toString())
+    }
+
+    query += " ORDER BY T2.$KEY_DATA_CONTA DESC"
+
+    db.rawQuery(query, selectionArgs.toTypedArray()).use { cursor ->
+        if (cursor.moveToFirst()) {
+            do {
+                val descricao = cursor.getString(cursor.getColumnIndexOrThrow("lancamento_descricao"))
+                val categoria = cursor.getString(cursor.getColumnIndexOrThrow("categoria_descricao"))
+                val valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA))
+                val data = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))
+                val tipo = cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))
+                lancamentos.add(UltimoLancamento(descricao, categoria, BigDecimal(valor), data, tipo))
+            } while (cursor.moveToNext())
+        }
+    }
+    return lancamentos
+}
 }
