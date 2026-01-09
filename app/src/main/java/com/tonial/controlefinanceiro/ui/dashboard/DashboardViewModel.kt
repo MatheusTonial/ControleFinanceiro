@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.tonial.controlefinanceiro.database.DatabaseHandler
 import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -13,7 +14,7 @@ import java.math.BigDecimal
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val dbHandler = DatabaseHandler(application)
+    private val dbHandler = DatabaseHandler.getInstance(application)
 
     private val _totalGastoMes = MutableStateFlow<BigDecimal>(BigDecimal.ZERO)
     val totalGastoMes: StateFlow<BigDecimal> = _totalGastoMes
@@ -25,7 +26,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     val ultimosLancamentos: StateFlow<List<UltimoLancamento>> = _ultimosLancamentos
 
     fun loadDashboardData() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _totalGastoMes.value = dbHandler.getTotalGastoMesAtual()
             _categoriasMaisGastas.value = dbHandler.getCategoriasMaisGastasMesAtual()
             _ultimosLancamentos.value = dbHandler.getUltimosLancamentos()

@@ -9,12 +9,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,70 +43,84 @@ import com.tonial.controlefinanceiro.ui.theme.ControleFinanceiroTheme
 fun TelaCategoria(
     modifier: Modifier = Modifier,
     viewModel: FluxoViewModel = viewModel(),
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    onBackClick: () -> Unit
 ) {
-    var ordemText by remember(viewModel.ordem_categoria) {
-        // O valor padrão 99 do ViewModel será exibido como um campo vazio.
-        mutableStateOf(if (viewModel.ordem_categoria == 99) "" else viewModel.ordem_categoria.toString())
-    }
-
-    Column(modifier = modifier.padding(8.dp)) {
-        OutlinedTextField(
-            value = viewModel.descricao_categoria,
-            onValueChange = { viewModel.onDescricaoCategoriaChange(it) },
-            label = { Text("Descrição") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = ordemText,
-            onValueChange = { newText ->
-                // Permite apenas dígitos
-                if (newText.all { it.isDigit() }) {
-                    ordemText = newText
-                    // Atualiza o ViewModel, com 99 como padrão se o campo estiver vazio
-                    viewModel.onOrdemCategoriaChange(newText.toIntOrNull() ?: 99)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Cadastro de Categoria") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                    }
                 }
-            },
-            label = { Text("Ordem") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        )
-
-        Row(Modifier.selectableGroup().fillMaxWidth().padding(top = 8.dp)) {
-            Text("Tipo", modifier = Modifier.align(Alignment.CenterVertically).padding(end = 16.dp))
-            TipoCategoria.values().forEach { tipo ->
-                Row(
-                    Modifier
-                        .height(56.dp)
-                        .selectable(
-                            selected = (tipo == viewModel.tipo_categoria),
-                            onClick = { viewModel.onTipoCategoriaChange(tipo) },
-                            role = Role.RadioButton
-                        )
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = (tipo == viewModel.tipo_categoria),
-                        onClick = null // Ação de clique é controlada pelo Row
-                    )
-                    Text(
-                        text = tipo.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-            }
+            )
+        }
+    ) { paddingValues ->
+        var ordemText by remember(viewModel.ordem_categoria) {
+            // O valor padrão 99 do ViewModel será exibido como um campo vazio.
+            mutableStateOf(if (viewModel.ordem_categoria == 99) "" else viewModel.ordem_categoria.toString())
         }
 
-        Button(
-            onClick = onSaveClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
-        ) {
-            Text("Salvar")
+        Column(modifier = modifier.padding(paddingValues).padding(8.dp)) {
+            OutlinedTextField(
+                value = viewModel.descricao_categoria,
+                onValueChange = { viewModel.onDescricaoCategoriaChange(it) },
+                label = { Text("Descrição") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = ordemText,
+                onValueChange = { newText ->
+                    // Permite apenas dígitos
+                    if (newText.all { it.isDigit() }) {
+                        ordemText = newText
+                        // Atualiza o ViewModel, com 99 como padrão se o campo estiver vazio
+                        viewModel.onOrdemCategoriaChange(newText.toIntOrNull() ?: 99)
+                    }
+                },
+                label = { Text("Ordem") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            )
+
+            Row(Modifier.selectableGroup().fillMaxWidth().padding(top = 8.dp)) {
+                Text("Tipo", modifier = Modifier.align(Alignment.CenterVertically).padding(end = 16.dp))
+                TipoCategoria.values().forEach { tipo ->
+                    Row(
+                        Modifier
+                            .height(56.dp)
+                            .selectable(
+                                selected = (tipo == viewModel.tipo_categoria),
+                                onClick = { viewModel.onTipoCategoriaChange(tipo) },
+                                role = Role.RadioButton
+                            )
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = (tipo == viewModel.tipo_categoria),
+                            onClick = null // Ação de clique é controlada pelo Row
+                        )
+                        Text(
+                            text = tipo.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                }
+            }
+
+            Button(
+                onClick = onSaveClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                Text("Salvar")
+            }
         }
     }
 }
@@ -110,6 +130,9 @@ fun TelaCategoria(
 fun TelaCategoriaPreview() {
     ControleFinanceiroTheme {
         val context = LocalContext.current
-        TelaCategoria(onSaveClick = { Toast.makeText(context, "Salvo!", Toast.LENGTH_SHORT).show() })
+        TelaCategoria(
+            onSaveClick = { Toast.makeText(context, "Salvo!", Toast.LENGTH_SHORT).show() },
+            onBackClick = {}
+        )
     }
 }

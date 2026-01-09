@@ -11,28 +11,39 @@ import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
 import java.math.BigDecimal
 
-class DatabaseHandler (context: Context) : 
+class DatabaseHandler private constructor(context: Context) : 
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        const val DATABASE_NAME = "bdfile.sqlite"
-        const val DATABASE_VERSION = 3
+        private const val DATABASE_NAME = "bdfile.sqlite"
+        private const val DATABASE_VERSION = 3
+
+        @Volatile
+        private var INSTANCE: DatabaseHandler? = null
+
+        fun getInstance(context: Context): DatabaseHandler {
+            return INSTANCE ?: synchronized(this) {
+                val instance = DatabaseHandler(context.applicationContext)
+                INSTANCE = instance
+                instance
+            }
+        }
 
         // Tabela Categorias
-        const val TABLE_CATEGORIAS = "categorias"
-        const val KEY_ID_CATEGORIA = "_id"
-        const val KEY_DESCRICAO_CATEGORIA = "descricao"
-        const val KEY_TIPO_CATEGORIA = "tipo"
-        const val KEY_ORDEM_CATEGORIA = "ordem"
+        private const val TABLE_CATEGORIAS = "categorias"
+        private const val KEY_ID_CATEGORIA = "_id"
+        private const val KEY_DESCRICAO_CATEGORIA = "descricao"
+        private const val KEY_TIPO_CATEGORIA = "tipo"
+        private const val KEY_ORDEM_CATEGORIA = "ordem"
 
         // Tabela Contas
-        const val TABLE_CONTAS = "contas"
-        const val KEY_ID_CONTA = "_id"
-        const val KEY_DESCRICAO_CONTA = "descricao"
-        const val KEY_VALOR_CONTA = "valor"
-        const val KEY_DATA_CONTA = "data"
-        const val KEY_ID_RECORRENTE_CONTA = "idRecorrente"
-        const val KEY_CATEGORIA_CONTA = "categoria_id"
+        private const val TABLE_CONTAS = "contas"
+        private const val KEY_ID_CONTA = "_id"
+        private const val KEY_DESCRICAO_CONTA = "descricao"
+        private const val KEY_VALOR_CONTA = "valor"
+        private const val KEY_DATA_CONTA = "data"
+        private const val KEY_ID_RECORRENTE_CONTA = "idRecorrente"
+        private const val KEY_CATEGORIA_CONTA = "categoria_id"
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
@@ -83,29 +94,26 @@ class DatabaseHandler (context: Context) :
             put(KEY_TIPO_CATEGORIA, categoria.tipo.name)
             put(KEY_ORDEM_CATEGORIA, categoria.ordem)
         }
-        val id = db.insert(TABLE_CATEGORIAS, null, values)
-        db.close()
-        return id
+        return db.insert(TABLE_CATEGORIAS, null, values)
     }
 
     fun getAllCategorias(): List<Categorias> {
         val categoriasList = ArrayList<Categorias>()
         val selectQuery = "SELECT * FROM $TABLE_CATEGORIAS ORDER BY $KEY_ORDEM_CATEGORIA ASC, $KEY_ID_CATEGORIA ASC"
         val db = this.readableDatabase
-        val cursor = db.rawQuery(selectQuery, null)
-        if (cursor.moveToFirst()) {
-            do {
-                val categoria = Categorias(
-                    _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CATEGORIA)),
-                    descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA)),
-                    tipo = TipoCategoria.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))),
-                    ordem = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ORDEM_CATEGORIA))
-                )
-                categoriasList.add(categoria)
-            } while (cursor.moveToNext())
+        db.rawQuery(selectQuery, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                do {
+                    val categoria = Categorias(
+                        _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CATEGORIA)),
+                        descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA)),
+                        tipo = TipoCategoria.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))),
+                        ordem = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ORDEM_CATEGORIA))
+                    )
+                    categoriasList.add(categoria)
+                } while (cursor.moveToNext())
+            }
         }
-        cursor.close()
-        db.close()
         return categoriasList
     }
 
@@ -118,9 +126,7 @@ class DatabaseHandler (context: Context) :
             put(KEY_ID_RECORRENTE_CONTA, conta.idRecorrente)
             put(KEY_CATEGORIA_CONTA, conta.categoriaId)
         }
-        val id = db.insert(TABLE_CONTAS, null, values)
-        db.close()
-        return id
+        return db.insert(TABLE_CONTAS, null, values)
     }
 
     fun getTotalGastoMesAtual(): BigDecimal {
@@ -132,13 +138,12 @@ class DatabaseHandler (context: Context) :
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
             AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
         """
-        val cursor = db.rawQuery(query, null)
         var total = BigDecimal.ZERO
-        if (cursor.moveToFirst()) {
-            total = BigDecimal(cursor.getDouble(0))
+        db.rawQuery(query, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                total = BigDecimal(cursor.getDouble(0))
+            }
         }
-        cursor.close()
-        db.close()
         return total
     }
 
@@ -155,17 +160,16 @@ class DatabaseHandler (context: Context) :
             ORDER BY total DESC
             LIMIT 5
         """
-        val cursor = db.rawQuery(query, null)
-        if (cursor.moveToFirst()) {
-            do {
-                val categoria = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA))
-                val total = cursor.getDouble(cursor.getColumnIndexOrThrow("total"))
-                val quantidade = cursor.getInt(cursor.getColumnIndexOrThrow("quantidade"))
-                categorias.add(CategoriaMaisGasta(categoria, BigDecimal(total), quantidade))
-            } while (cursor.moveToNext())
+        db.rawQuery(query, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                do {
+                    val categoria = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA))
+                    val total = cursor.getDouble(cursor.getColumnIndexOrThrow("total"))
+                    val quantidade = cursor.getInt(cursor.getColumnIndexOrThrow("quantidade"))
+                    categorias.add(CategoriaMaisGasta(categoria, BigDecimal(total), quantidade))
+                } while (cursor.moveToNext())
+            }
         }
-        cursor.close()
-        db.close()
         return categorias
     }
 
@@ -185,19 +189,18 @@ class DatabaseHandler (context: Context) :
             ORDER BY T2.$KEY_DATA_CONTA DESC
             LIMIT 10
         """
-        val cursor = db.rawQuery(query, null)
-        if (cursor.moveToFirst()) {
-            do {
-                val descricao = cursor.getString(cursor.getColumnIndexOrThrow("lancamento_descricao"))
-                val categoria = cursor.getString(cursor.getColumnIndexOrThrow("categoria_descricao"))
-                val valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA))
-                val data = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))
-                val tipo = cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))
-                lancamentos.add(UltimoLancamento(descricao, categoria, BigDecimal(valor), data, tipo))
-            } while (cursor.moveToNext())
+        db.rawQuery(query, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                do {
+                    val descricao = cursor.getString(cursor.getColumnIndexOrThrow("lancamento_descricao"))
+                    val categoria = cursor.getString(cursor.getColumnIndexOrThrow("categoria_descricao"))
+                    val valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA))
+                    val data = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))
+                    val tipo = cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))
+                    lancamentos.add(UltimoLancamento(descricao, categoria, BigDecimal(valor), data, tipo))
+                } while (cursor.moveToNext())
+            }
         }
-        cursor.close()
-        db.close()
         return lancamentos
     }
 }

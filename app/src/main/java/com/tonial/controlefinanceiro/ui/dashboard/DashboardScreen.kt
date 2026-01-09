@@ -11,14 +11,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,32 +44,58 @@ import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
 import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
 import com.tonial.controlefinanceiro.ui.theme.ControleFinanceiroTheme
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-// Tela principal do dashboard
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
+    drawerState: DrawerState,
+    onNavigateToLancamento: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel(),
 ) {
     val totalGastoMes by viewModel.totalGastoMes.collectAsState()
     val categoriasMaisGastas by viewModel.categoriasMaisGastas.collectAsState()
     val ultimosLancamentos by viewModel.ultimosLancamentos.collectAsState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.loadDashboardData()
     }
 
-    DashboardContent(
+    Scaffold(
         modifier = modifier,
-        totalGastoMes = totalGastoMes,
-        categoriasMaisGastas = categoriasMaisGastas,
-        ultimosLancamentos = ultimosLancamentos
-    )
+        topBar = {
+            TopAppBar(
+                title = { Text("Dashboard") },
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onNavigateToLancamento,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Adicionar Lançamento")
+            }
+        }
+    ) { paddingValues ->
+        DashboardContent(
+            modifier = Modifier.padding(paddingValues),
+            totalGastoMes = totalGastoMes,
+            categoriasMaisGastas = categoriasMaisGastas,
+            ultimosLancamentos = ultimosLancamentos
+        )
+    }
 }
 
 // Conteúdo do dashboard
@@ -198,27 +236,44 @@ fun LancamentoRow(lancamento: UltimoLancamento) {
     }
 }
 
-// Preview da tela de dashboard no modo noturno
+@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun DashboardScreenPreview() {
-    val mockCategorias = listOf(
-        CategoriaMaisGasta("Mercado", BigDecimal("550.75"), 5),
-        CategoriaMaisGasta("Aluguel", BigDecimal("1200.00"), 1),
-        CategoriaMaisGasta("Lazer", BigDecimal("250.00"), 3),
-        CategoriaMaisGasta("Transporte", BigDecimal("150.00"), 2),
-        CategoriaMaisGasta("Saúde", BigDecimal("300.00"), 1)
-    )
-    val mockLancamentos = listOf(
-        UltimoLancamento("Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),
-        UltimoLancamento("Cinema", "Lazer", BigDecimal("80.00"), LocalDate.now().minusDays(1).toString(), TipoCategoria.Perda.name),
-        UltimoLancamento("Salário", "Salário", BigDecimal("5000.00"), LocalDate.now().minusDays(2).toString(), TipoCategoria.Ganho.name),
-        UltimoLancamento("Posto Shell", "Transporte", BigDecimal("150.00"), LocalDate.now().minusDays(3).toString(), TipoCategoria.Perda.name)
-    )
-
     ControleFinanceiroTheme {
-        Surface {
+        val mockCategorias = listOf(
+            CategoriaMaisGasta("Mercado", BigDecimal("550.75"), 5),
+            CategoriaMaisGasta("Aluguel", BigDecimal("1200.00"), 1),
+            CategoriaMaisGasta("Lazer", BigDecimal("250.00"), 3),
+            CategoriaMaisGasta("Transporte", BigDecimal("150.00"), 2),
+            CategoriaMaisGasta("Saúde", BigDecimal("300.00"), 1)
+        )
+        val mockLancamentos = listOf(
+            UltimoLancamento("Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),
+            UltimoLancamento("Cinema", "Lazer", BigDecimal("80.00"), LocalDate.now().minusDays(1).toString(), TipoCategoria.Perda.name),
+            UltimoLancamento("Salário", "Salário", BigDecimal("5000.00"), LocalDate.now().minusDays(2).toString(), TipoCategoria.Ganho.name),
+            UltimoLancamento("Posto Shell", "Transporte", BigDecimal("150.00"), LocalDate.now().minusDays(3).toString(), TipoCategoria.Perda.name)
+        )
+
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Dashboard") },
+                    navigationIcon = {
+                        IconButton(onClick = { }) {
+                            Icon(Icons.Default.Menu, "Menu")
+                        }
+                    }
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = { }) {
+                    Icon(Icons.Default.Add, "Adicionar")
+                }
+            }
+        ) { paddingValues ->
             DashboardContent(
+                modifier = Modifier.padding(paddingValues),
                 totalGastoMes = BigDecimal("2450.80"),
                 categoriasMaisGastas = mockCategorias,
                 ultimosLancamentos = mockLancamentos

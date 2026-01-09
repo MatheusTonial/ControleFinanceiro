@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -14,10 +16,14 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -48,137 +53,154 @@ fun TelaLancamentoConta(
     modifier: Modifier = Modifier,
     viewModel: FluxoViewModel,
     categorias: List<Categorias>,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    onBackClick: () -> Unit
 ) {
-    val focusRequester = remember { FocusRequester() }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var expanded by remember { mutableStateOf(false) }
-    var selectedCategoryText by remember(viewModel.categoria_id_conta) {
-        mutableStateOf(categorias.find { it._id == viewModel.categoria_id_conta }?.descricao ?: "")
-    }
-    var valorText by remember { mutableStateOf("") }
-
-    LaunchedEffect(viewModel.valor_conta) {
-        if (viewModel.valor_conta == 0.0) {
-            valorText = ""
-        }
-    }
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState()
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
-                            viewModel.onDataContaChange(selectedDate)
-                        }
-                        showDatePicker = false
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Lançamento de Conta") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
                     }
-                ) {
-                    Text("OK")
                 }
-            },
-            dismissButton = {
-                Button(onClick = { showDatePicker = false }) { Text("Cancelar") }
-            }
-        ) {
-            DatePicker(state = datePickerState)
+            )
         }
-    }
+    ) { paddingValues ->
+        val focusRequester = remember { FocusRequester() }
+        var showDatePicker by remember { mutableStateOf(false) }
+        var expanded by remember { mutableStateOf(false) }
+        var selectedCategoryText by remember(viewModel.categoria_id_conta, categorias) {
+            mutableStateOf(categorias.find { it._id == viewModel.categoria_id_conta }?.descricao ?: "")
+        }
+        var valorText by remember { mutableStateOf("") }
 
-    Column(modifier = modifier.padding(8.dp)) {
-        OutlinedTextField(
-            value = viewModel.descricao_conta,
-            onValueChange = { viewModel.onDescricaoContaChange(it) },
-            label = { Text("Descrição") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            OutlinedTextField(
-                value = valorText,
-                onValueChange = { newText ->
-                    val sanitizedText = newText.replace(',', '.')
-                    if (sanitizedText.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
-                        valorText = sanitizedText
-                        val parsedValue = sanitizedText.toDoubleOrNull()
-                        if (parsedValue != null) {
-                            viewModel.onValorContaChange(parsedValue)
-                        } else if (sanitizedText.isEmpty()) {
-                            viewModel.onValorContaChange(0.0)
-                        }
-                    }
-                },
-                label = { Text("R$ 0,00") },
-                modifier = Modifier
-                    .weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-            OutlinedTextField(
-                value = viewModel.data_conta.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                onValueChange = { },
-                enabled = false,
-                label = { Text("Data") },
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { showDatePicker = true },
-                colors = OutlinedTextFieldDefaults.colors(
-                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledBorderColor = MaterialTheme.colorScheme.outline,
-                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            )
+        LaunchedEffect(viewModel.valor_conta) {
+            if (viewModel.valor_conta == 0.0) {
+                valorText = ""
+            }
         }
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-            modifier = Modifier.padding(top = 8.dp)
-        ) {
-            OutlinedTextField(
-                value = selectedCategoryText,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Categoria") },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ){
-                categorias.forEach { categoria ->
-                    DropdownMenuItem(
-                        text = { Text(categoria.descricao) },
+
+        if (showDatePicker) {
+            val datePickerState = rememberDatePickerState()
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = {
+                    Button(
                         onClick = {
-                            viewModel.onCategoriaIdContaChange(categoria._id)
-                            expanded = false
+                            datePickerState.selectedDateMillis?.let { millis ->
+                                val selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
+                                viewModel.onDataContaChange(selectedDate)
+                            }
+                            showDatePicker = false
                         }
-                    )
+                    ) {
+                        Text("OK")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { showDatePicker = false }) { Text("Cancelar") }
                 }
+            ) {
+                DatePicker(state = datePickerState)
             }
         }
-        Button(
-            onClick = onSaveClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
-        ) {
-            Text("Salvar")
+
+        Column(modifier = modifier
+            .padding(paddingValues)
+            .padding(8.dp)) {
+            OutlinedTextField(
+                value = viewModel.descricao_conta,
+                onValueChange = { viewModel.onDescricaoContaChange(it) },
+                label = { Text("Descrição") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                OutlinedTextField(
+                    value = valorText,
+                    onValueChange = { newText ->
+                        val sanitizedText = newText.replace(',', '.')
+                        if (sanitizedText.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
+                            valorText = sanitizedText
+                            val parsedValue = sanitizedText.toDoubleOrNull()
+                            if (parsedValue != null) {
+                                viewModel.onValorContaChange(parsedValue)
+                            } else if (sanitizedText.isEmpty()) {
+                                viewModel.onValorContaChange(0.0)
+                            }
+                        }
+                    },
+                    label = { Text("R$ 0,00") },
+                    modifier = Modifier
+                        .weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = viewModel.data_conta.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                    onValueChange = { },
+                    enabled = false,
+                    label = { Text("Data") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showDatePicker = true },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                )
+            }
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                OutlinedTextField(
+                    value = selectedCategoryText,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Categoria") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ){
+                    categorias.forEach { categoria ->
+                        DropdownMenuItem(
+                            text = { Text(categoria.descricao) },
+                            onClick = {
+                                viewModel.onCategoriaIdContaChange(categoria._id)
+                                selectedCategoryText = categoria.descricao
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            Button(
+                onClick = onSaveClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                Text("Salvar")
+            }
         }
     }
 }
@@ -193,10 +215,10 @@ fun TelaLancamentoContaPreview() {
     )
     ControleFinanceiroTheme {
         TelaLancamentoConta(
-            Modifier,
             viewModel = viewModel(),
             categorias = mockCategorias,
-            onSaveClick = {}
+            onSaveClick = {},
+            onBackClick = {}
         )
     }
 }

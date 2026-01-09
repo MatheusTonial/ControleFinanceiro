@@ -1,16 +1,22 @@
 package com.tonial.controlefinanceiro.model
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.tonial.controlefinanceiro.database.DatabaseHandler
 import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.entity.Contas
 import com.tonial.controlefinanceiro.entity.TipoCategoria
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-class FluxoViewModel: ViewModel() {
+class FluxoViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val dbHandler = DatabaseHandler.getInstance(application)
 
     //region Categoria
 
@@ -36,15 +42,17 @@ class FluxoViewModel: ViewModel() {
         ordem_categoria = 99
     }
 
-    fun salvarCategoria(db: DatabaseHandler) {
-        val novaCategoria = Categorias(
-            _id = 0, // O ID será gerado automaticamente pelo banco
-            descricao = descricao_categoria,
-            tipo = tipo_categoria,
-            ordem = ordem_categoria
-        )
-        db.addCategoria(novaCategoria)
-        limpaCategoria()
+    fun salvarCategoria() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val novaCategoria = Categorias(
+                _id = 0, // O ID será gerado automaticamente pelo banco
+                descricao = descricao_categoria,
+                tipo = tipo_categoria,
+                ordem = ordem_categoria
+            )
+            dbHandler.addCategoria(novaCategoria)
+            limpaCategoria()
+        }
     }
 
     //endregion Categoria
@@ -87,22 +95,24 @@ class FluxoViewModel: ViewModel() {
         mensagemErro = null
     }
 
-    fun salvarConta(db: DatabaseHandler): Boolean {
+    fun salvarConta(): Boolean {
         if (descricao_conta.isBlank() || valor_conta == 0.0 || categoria_id_conta == null) {
             mensagemErro = "Preencha todos os campos obrigatórios."
             return false
         }
 
-        val novaConta = Contas(
-            _id = 0, // O ID será gerado automaticamente pelo banco
-            descricao = descricao_conta,
-            valor = valor_conta,
-            data = data_conta,
-            idRecorrente = idRecorrente_conta,
-            categoriaId = categoria_id_conta!!
-        )
-        db.addConta(novaConta)
-        limpaConta()
+        viewModelScope.launch(Dispatchers.IO) {
+            val novaConta = Contas(
+                _id = 0, // O ID será gerado automaticamente pelo banco
+                descricao = descricao_conta,
+                valor = valor_conta,
+                data = data_conta,
+                idRecorrente = idRecorrente_conta,
+                categoriaId = categoria_id_conta!!
+            )
+            dbHandler.addConta(novaConta)
+            limpaConta()
+        }
         return true
     }
 

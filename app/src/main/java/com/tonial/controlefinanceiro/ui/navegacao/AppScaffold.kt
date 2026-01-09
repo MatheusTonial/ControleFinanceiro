@@ -2,26 +2,20 @@ package com.tonial.controlefinanceiro.ui.navegacao
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -30,11 +24,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.tonial.controlefinanceiro.database.DatabaseHandler
+import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.model.FluxoViewModel
 import com.tonial.controlefinanceiro.ui.dashboard.DashboardScreen
 import com.tonial.controlefinanceiro.ui.telas.TelaCategoria
 import com.tonial.controlefinanceiro.ui.telas.TelaLancamentoConta
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object Routes {
     const val DASHBOARD = "dashboard"
@@ -49,17 +46,11 @@ fun AppScaffold() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val banco = remember { DatabaseHandler(context) }
+    val banco = remember { DatabaseHandler.getInstance(context) }
     val viewModel: FluxoViewModel = viewModel()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-    val title = when (currentRoute) {
-        Routes.LANCAMENTO_CONTA -> "Lançamento de Conta"
-        Routes.CADASTRO_CATEGORIA -> "Cadastro de Categoria"
-        else -> "Dashboard"
-    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -91,65 +82,48 @@ fun AppScaffold() {
                 )
             }
         }
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text(text = title) },
-                    navigationIcon = {
-                        IconButton(onClick = { 
-                            scope.launch { drawerState.open() } 
-                        }) {
-                            Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
-                        }
-                    }
+    ) { 
+        NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
+            composable(Routes.DASHBOARD) {
+                DashboardScreen(
+                    drawerState = drawerState,
+                    onNavigateToLancamento = { navController.navigate(Routes.LANCAMENTO_CONTA) }
                 )
-            },
-            floatingActionButton = {
-                if (currentRoute == Routes.DASHBOARD) {
-                    FloatingActionButton(
-                        onClick = { navController.navigate(Routes.LANCAMENTO_CONTA) },
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Lançamento")
+            }
+            composable(Routes.LANCAMENTO_CONTA) {
+                var categorias by remember { mutableStateOf<List<Categorias>>(emptyList()) }
+
+                LaunchedEffect(Unit) {
+                    withContext(Dispatchers.IO) {
+                        categorias = banco.getAllCategorias()
                     }
                 }
-            }
-        ) { paddingValues ->
-            NavHost(
-                navController = navController, 
-                startDestination = Routes.DASHBOARD,
-                modifier = Modifier.padding(paddingValues)
-            ) {
-                composable(Routes.DASHBOARD) {
-                    DashboardScreen()
-                }
-                composable(Routes.LANCAMENTO_CONTA) {
-                    val categorias = remember { banco.getAllCategorias() }
-                    TelaLancamentoConta(
-                        viewModel = viewModel,
-                        categorias = categorias,
-                        onSaveClick = {
-                            if (viewModel.salvarConta(banco)) {
-                                Toast.makeText(context, "Conta salva com sucesso!", Toast.LENGTH_SHORT).show()
-                                navController.navigateUp()
-                            } else {
-                                viewModel.mensagemErro?.let {
-                                    Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-                                }
+
+                TelaLancamentoConta(
+                    viewModel = viewModel,
+                    categorias = categorias,
+                    onSaveClick = {
+                        if (viewModel.salvarConta()) {
+                            Toast.makeText(context, "Conta salva com sucesso!", Toast.LENGTH_SHORT).show()
+                            navController.navigateUp()
+                        } else {
+                            viewModel.mensagemErro?.let {
+                                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                             }
                         }
-                    )
-                }
-                composable(Routes.CADASTRO_CATEGORIA) {
-                    TelaCategoria(
-                        viewModel = viewModel,
-                        onSaveClick = {
-                            viewModel.salvarCategoria(banco)
-                            Toast.makeText(context, "Categoria salva com sucesso!", Toast.LENGTH_SHORT).show()
-                        }
-                    )
-                }
+                    },
+                    onBackClick = { navController.navigateUp() }
+                )
+            }
+            composable(Routes.CADASTRO_CATEGORIA) {
+                TelaCategoria(
+                    viewModel = viewModel,
+                    onSaveClick = {
+                        viewModel.salvarCategoria()
+                        Toast.makeText(context, "Categoria salva com sucesso!", Toast.LENGTH_SHORT).show()
+                    },
+                    onBackClick = { navController.navigateUp() }
+                )
             }
         }
     }
