@@ -56,6 +56,7 @@ class FluxoViewModel: ViewModel() {
     var data_conta by mutableStateOf(LocalDate.now())
     var idRecorrente_conta by mutableStateOf(0)
     var categoria_id_conta by mutableStateOf<Long?>(null)
+    var mensagemErro by mutableStateOf<String?>(null)
 
     fun onDescricaoContaChange(newValue: String) {
         descricao_conta = newValue
@@ -83,24 +84,26 @@ class FluxoViewModel: ViewModel() {
         data_conta = LocalDate.now()
         idRecorrente_conta = 0
         categoria_id_conta = null
+        mensagemErro = null
     }
 
-    fun salvarConta(db: DatabaseHandler){
-        val categoriaId = categoria_id_conta
-        if (categoriaId != null) {
-            val novaConta = Contas(
-                _id = 0, // O ID será gerado automaticamente pelo banco
-                descricao = descricao_conta,
-                valor = valor_conta,
-                data = data_conta,
-                idRecorrente = idRecorrente_conta,
-                categoriaId = categoriaId
-            )
-            db.addConta(novaConta)
-            limpaConta()
-        } else {
-            // Opcional: Adicionar uma mensagem de erro para o usuário aqui
+    fun salvarConta(db: DatabaseHandler): Boolean {
+        if (descricao_conta.isBlank() || valor_conta == 0.0 || categoria_id_conta == null) {
+            mensagemErro = "Preencha todos os campos obrigatórios."
+            return false
         }
+
+        val novaConta = Contas(
+            _id = 0, // O ID será gerado automaticamente pelo banco
+            descricao = descricao_conta,
+            valor = valor_conta,
+            data = data_conta,
+            idRecorrente = idRecorrente_conta,
+            categoriaId = categoria_id_conta!!
+        )
+        db.addConta(novaConta)
+        limpaConta()
+        return true
     }
 
     //endregion Conta

@@ -126,8 +126,14 @@ fun AppScaffold() {
                         viewModel = viewModel,
                         categorias = categorias,
                         onSaveClick = {
-                            viewModel.salvarConta(banco)
-                            Toast.makeText(context, "Conta salva com sucesso!", Toast.LENGTH_SHORT).show()
+                            if (viewModel.salvarConta(banco)) {
+                                Toast.makeText(context, "Conta salva com sucesso!", Toast.LENGTH_SHORT).show()
+                                navController.navigateUp()
+                            } else {
+                                viewModel.mensagemErro?.let {
+                                    Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         }
                     )
                 }

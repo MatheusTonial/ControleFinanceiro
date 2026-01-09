@@ -196,7 +196,7 @@ class DatabaseHandler (context: Context) :
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE date(T2.$KEY_DATA_CONTA) <= date('now')
             ORDER BY T2.$KEY_DATA_CONTA DESC
-            LIMIT 5
+            LIMIT 10
         """
         val cursor = db.rawQuery(query, null)
         if (cursor.moveToFirst()) {
