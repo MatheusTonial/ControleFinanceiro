@@ -1,5 +1,6 @@
 package com.tonial.controlefinanceiro.ui.dashboard
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,6 +38,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+// Tela principal do dashboard
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
@@ -58,6 +60,7 @@ fun DashboardScreen(
     )
 }
 
+// Conteúdo do dashboard
 @Composable
 fun DashboardContent(
     modifier: Modifier = Modifier,
@@ -77,6 +80,7 @@ fun DashboardContent(
     }
 }
 
+// Card com o total de gastos do mês
 @Composable
 fun TotalGastoCard(total: BigDecimal) {
     Card(
@@ -100,6 +104,7 @@ fun TotalGastoCard(total: BigDecimal) {
     }
 }
 
+// Carrossel com as 5 categorias com mais gastos
 @Composable
 fun CategoriasMaisGastasCarousel(categorias: List<CategoriaMaisGasta>) {
     Column {
@@ -115,19 +120,33 @@ fun CategoriasMaisGastasCarousel(categorias: List<CategoriaMaisGasta>) {
     }
 }
 
+// Card de uma categoria
 @Composable
 fun CategoriaCard(categoria: CategoriaMaisGasta) {
     Card {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = categoria.categoria, style = MaterialTheme.typography.bodyMedium)
+            // Nome da categoria em negrito
+            Text(
+                text = categoria.categoria,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
+            // Ajusta o plural de "lançamento"
+            val lancamentoText = if (categoria.quantidadeLancamentos == 1) "lançamento" else "lançamentos"
+            Text(
+                text = "${categoria.quantidadeLancamentos} $lancamentoText",
+                style = MaterialTheme.typography.bodySmall
+            )
             Text(
                 text = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(categoria.total),
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
 
+// Lista com os últimos lançamentos
 @Composable
 fun UltimosLancamentosList(lancamentos: List<UltimoLancamento>) {
     Column {
@@ -143,6 +162,7 @@ fun UltimosLancamentosList(lancamentos: List<UltimoLancamento>) {
     }
 }
 
+// Linha de um lançamento
 @Composable
 fun LancamentoRow(lancamento: UltimoLancamento) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -178,15 +198,16 @@ fun LancamentoRow(lancamento: UltimoLancamento) {
     }
 }
 
-@Preview(showBackground = true)
+// Preview da tela de dashboard no modo noturno
+@Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun DashboardScreenPreview() {
     val mockCategorias = listOf(
-        CategoriaMaisGasta("Mercado", BigDecimal("550.75")),
-        CategoriaMaisGasta("Aluguel", BigDecimal("1200.00")),
-        CategoriaMaisGasta("Lazer", BigDecimal("250.00")),
-        CategoriaMaisGasta("Transporte", BigDecimal("150.00")),
-        CategoriaMaisGasta("Saúde", BigDecimal("300.00"))
+        CategoriaMaisGasta("Mercado", BigDecimal("550.75"), 5),
+        CategoriaMaisGasta("Aluguel", BigDecimal("1200.00"), 1),
+        CategoriaMaisGasta("Lazer", BigDecimal("250.00"), 3),
+        CategoriaMaisGasta("Transporte", BigDecimal("150.00"), 2),
+        CategoriaMaisGasta("Saúde", BigDecimal("300.00"), 1)
     )
     val mockLancamentos = listOf(
         UltimoLancamento("Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),

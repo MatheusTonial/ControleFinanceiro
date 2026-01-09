@@ -4,7 +4,8 @@ import java.math.BigDecimal
 
 data class CategoriaMaisGasta(
     val categoria: String,
-    val total: BigDecimal
+    val total: BigDecimal,
+    val quantidadeLancamentos: Int
 )
 
 data class UltimoLancamento(

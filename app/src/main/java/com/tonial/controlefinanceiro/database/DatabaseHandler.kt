@@ -146,7 +146,7 @@ class DatabaseHandler (context: Context) :
         val categorias = mutableListOf<CategoriaMaisGasta>()
         val db = this.readableDatabase
         val query = """
-            SELECT T1.$KEY_DESCRICAO_CATEGORIA, SUM(T2.$KEY_VALOR_CONTA) as total
+            SELECT T1.$KEY_DESCRICAO_CATEGORIA, SUM(T2.$KEY_VALOR_CONTA) as total, COUNT(T2.$KEY_ID_CONTA) as quantidade
             FROM $TABLE_CATEGORIAS T1
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
@@ -160,7 +160,8 @@ class DatabaseHandler (context: Context) :
             do {
                 val categoria = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA))
                 val total = cursor.getDouble(cursor.getColumnIndexOrThrow("total"))
-                categorias.add(CategoriaMaisGasta(categoria, BigDecimal(total)))
+                val quantidade = cursor.getInt(cursor.getColumnIndexOrThrow("quantidade"))
+                categorias.add(CategoriaMaisGasta(categoria, BigDecimal(total), quantidade))
             } while (cursor.moveToNext())
         }
         cursor.close()
