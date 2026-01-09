@@ -12,8 +12,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -21,12 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
 import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
+import com.tonial.controlefinanceiro.ui.theme.ControleFinanceiroTheme
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.time.LocalDate
@@ -42,8 +46,25 @@ fun DashboardScreen(
     val categoriasMaisGastas by viewModel.categoriasMaisGastas.collectAsState()
     val ultimosLancamentos by viewModel.ultimosLancamentos.collectAsState()
 
-    viewModel.loadDashboardData()
+    LaunchedEffect(Unit) {
+        viewModel.loadDashboardData()
+    }
 
+    DashboardContent(
+        modifier = modifier,
+        totalGastoMes = totalGastoMes,
+        categoriasMaisGastas = categoriasMaisGastas,
+        ultimosLancamentos = ultimosLancamentos
+    )
+}
+
+@Composable
+fun DashboardContent(
+    modifier: Modifier = Modifier,
+    totalGastoMes: BigDecimal,
+    categoriasMaisGastas: List<CategoriaMaisGasta>,
+    ultimosLancamentos: List<UltimoLancamento>
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -152,6 +173,34 @@ fun LancamentoRow(lancamento: UltimoLancamento) {
                 text = textoValor,
                 color = cor,
                 fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DashboardScreenPreview() {
+    val mockCategorias = listOf(
+        CategoriaMaisGasta("Mercado", BigDecimal("550.75")),
+        CategoriaMaisGasta("Aluguel", BigDecimal("1200.00")),
+        CategoriaMaisGasta("Lazer", BigDecimal("250.00")),
+        CategoriaMaisGasta("Transporte", BigDecimal("150.00")),
+        CategoriaMaisGasta("Saúde", BigDecimal("300.00"))
+    )
+    val mockLancamentos = listOf(
+        UltimoLancamento("Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),
+        UltimoLancamento("Cinema", "Lazer", BigDecimal("80.00"), LocalDate.now().minusDays(1).toString(), TipoCategoria.Perda.name),
+        UltimoLancamento("Salário", "Salário", BigDecimal("5000.00"), LocalDate.now().minusDays(2).toString(), TipoCategoria.Ganho.name),
+        UltimoLancamento("Posto Shell", "Transporte", BigDecimal("150.00"), LocalDate.now().minusDays(3).toString(), TipoCategoria.Perda.name)
+    )
+
+    ControleFinanceiroTheme {
+        Surface {
+            DashboardContent(
+                totalGastoMes = BigDecimal("2450.80"),
+                categoriasMaisGastas = mockCategorias,
+                ultimosLancamentos = mockLancamentos
             )
         }
     }

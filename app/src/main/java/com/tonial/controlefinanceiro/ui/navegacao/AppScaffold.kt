@@ -10,6 +10,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
@@ -106,7 +107,10 @@ fun AppScaffold() {
             },
             floatingActionButton = {
                 if (currentRoute == Routes.DASHBOARD) {
-                    FloatingActionButton(onClick = { navController.navigate(Routes.LANCAMENTO_CONTA) }) {
+                    FloatingActionButton(
+                        onClick = { navController.navigate(Routes.LANCAMENTO_CONTA) },
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Lançamento")
                     }
                 }
