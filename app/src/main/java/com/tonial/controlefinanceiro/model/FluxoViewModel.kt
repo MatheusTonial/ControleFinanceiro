@@ -59,12 +59,26 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
 
     //region Conta
 
+    var contaId by mutableStateOf<Long?>(null)
     var descricao_conta by mutableStateOf("")
     var valor_conta by mutableStateOf(0.0)
     var data_conta by mutableStateOf(LocalDate.now())
     var idRecorrente_conta by mutableStateOf(0)
     var categoria_id_conta by mutableStateOf<Long?>(null)
     var mensagemErro by mutableStateOf<String?>(null)
+
+    fun loadConta(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHandler.getContaById(id)?.let { conta ->
+                contaId = conta._id
+                descricao_conta = conta.descricao
+                valor_conta = conta.valor
+                data_conta = conta.data
+                idRecorrente_conta = conta.idRecorrente
+                categoria_id_conta = conta.categoriaId
+            }
+        }
+    }
 
     fun onDescricaoContaChange(newValue: String) {
         descricao_conta = newValue
@@ -87,6 +101,7 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun limpaConta(){
+        contaId = null
         descricao_conta = ""
         valor_conta = 0.0
         data_conta = LocalDate.now()
@@ -102,15 +117,19 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            val novaConta = Contas(
-                _id = 0, // O ID será gerado automaticamente pelo banco
+            val conta = Contas(
+                _id = contaId ?: 0,
                 descricao = descricao_conta,
                 valor = valor_conta,
                 data = data_conta,
                 idRecorrente = idRecorrente_conta,
                 categoriaId = categoria_id_conta!!
             )
-            dbHandler.addConta(novaConta)
+            if (contaId == null) {
+                dbHandler.addConta(conta)
+            } else {
+                dbHandler.updateConta(conta)
+            }
             limpaConta()
         }
         return true

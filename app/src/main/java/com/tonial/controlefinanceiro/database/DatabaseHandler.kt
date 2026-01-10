@@ -10,6 +10,7 @@ import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
 import java.math.BigDecimal
+import java.time.LocalDate
 
 class DatabaseHandler private constructor(context: Context) : 
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
@@ -129,6 +130,41 @@ class DatabaseHandler private constructor(context: Context) :
         return db.insert(TABLE_CONTAS, null, values)
     }
 
+    fun updateConta(conta: Contas): Int {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(KEY_DESCRICAO_CONTA, conta.descricao)
+            put(KEY_VALOR_CONTA, conta.valor)
+            put(KEY_DATA_CONTA, conta.data.toString())
+            put(KEY_ID_RECORRENTE_CONTA, conta.idRecorrente)
+            put(KEY_CATEGORIA_CONTA, conta.categoriaId)
+        }
+        return db.update(TABLE_CONTAS, values, "$KEY_ID_CONTA = ?", arrayOf(conta._id.toString()))
+    }
+
+    fun deleteLancamentoById(id: Long) {
+        val db = this.writableDatabase
+        db.delete(TABLE_CONTAS, "$KEY_ID_CONTA = ?", arrayOf(id.toString()))
+    }
+    
+    fun getContaById(id: Long): Contas? {
+        val db = this.readableDatabase
+        var conta: Contas? = null
+        db.rawQuery("SELECT * FROM $TABLE_CONTAS WHERE $KEY_ID_CONTA = ?", arrayOf(id.toString())).use { cursor ->
+            if (cursor.moveToFirst()) {
+                conta = Contas(
+                    _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CONTA)),
+                    descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CONTA)),
+                    valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA)),
+                    data = LocalDate.parse(cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))),
+                    idRecorrente = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ID_RECORRENTE_CONTA)),
+                    categoriaId = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CATEGORIA_CONTA))
+                )
+            }
+        }
+        return conta
+    }
+
     fun getTotalGastoMesAtual(): BigDecimal {
         val db = this.readableDatabase
         val query = """
@@ -178,6 +214,7 @@ class DatabaseHandler private constructor(context: Context) :
         val db = this.readableDatabase
         val query = """
             SELECT 
+                T2.$KEY_ID_CONTA, 
                 T2.$KEY_DESCRICAO_CONTA AS lancamento_descricao, 
                 T1.$KEY_DESCRICAO_CATEGORIA AS categoria_descricao, 
                 T2.$KEY_VALOR_CONTA, 
@@ -192,12 +229,13 @@ class DatabaseHandler private constructor(context: Context) :
         db.rawQuery(query, null).use { cursor ->
             if (cursor.moveToFirst()) {
                 do {
+                    val id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CONTA))
                     val descricao = cursor.getString(cursor.getColumnIndexOrThrow("lancamento_descricao"))
                     val categoria = cursor.getString(cursor.getColumnIndexOrThrow("categoria_descricao"))
                     val valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA))
                     val data = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))
                     val tipo = cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))
-                    lancamentos.add(UltimoLancamento(descricao, categoria, BigDecimal(valor), data, tipo))
+                    lancamentos.add(UltimoLancamento(id, descricao, categoria, BigDecimal(valor), data, tipo))
                 } while (cursor.moveToNext())
             }
         }
@@ -213,6 +251,7 @@ class DatabaseHandler private constructor(context: Context) :
     val db = this.readableDatabase
     var query = """
         SELECT
+            T2.$KEY_ID_CONTA,
             T2.$KEY_DESCRICAO_CONTA AS lancamento_descricao,
             T1.$KEY_DESCRICAO_CATEGORIA AS categoria_descricao,
             T2.$KEY_VALOR_CONTA,
@@ -235,12 +274,13 @@ class DatabaseHandler private constructor(context: Context) :
     db.rawQuery(query, selectionArgs.toTypedArray()).use { cursor ->
         if (cursor.moveToFirst()) {
             do {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CONTA))
                 val descricao = cursor.getString(cursor.getColumnIndexOrThrow("lancamento_descricao"))
                 val categoria = cursor.getString(cursor.getColumnIndexOrThrow("categoria_descricao"))
                 val valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA))
                 val data = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))
                 val tipo = cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))
-                lancamentos.add(UltimoLancamento(descricao, categoria, BigDecimal(valor), data, tipo))
+                lancamentos.add(UltimoLancamento(id, descricao, categoria, BigDecimal(valor), data, tipo))
             } while (cursor.moveToNext())
         }
     }

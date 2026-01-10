@@ -17,10 +17,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tonial.controlefinanceiro.database.DatabaseHandler
 import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.model.FluxoViewModel
@@ -74,7 +76,7 @@ fun AppScaffold() {
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "Lançamento de Conta") },
-                    selected = currentRoute == Routes.LANCAMENTO_CONTA,
+                    selected = currentRoute?.startsWith(Routes.LANCAMENTO_CONTA) == true,
                     onClick = { 
                         navController.navigate(Routes.LANCAMENTO_CONTA)
                         scope.launch { drawerState.close() }
@@ -95,14 +97,30 @@ fun AppScaffold() {
             composable(Routes.DASHBOARD) {
                 DashboardScreen(
                     drawerState = drawerState,
-                    onNavigateToLancamento = { navController.navigate(Routes.LANCAMENTO_CONTA) }
+                    onNavigateToLancamento = {
+                        val route = if (it != null) "${Routes.LANCAMENTO_CONTA}?lancamentoId=$it" else Routes.LANCAMENTO_CONTA
+                        navController.navigate(route)
+                    }
                 )
             }
             composable(Routes.HISTORICO) {
-                HistoricoScreen(drawerState = drawerState)
+                HistoricoScreen(
+                    drawerState = drawerState,
+                    onNavigateToLancamento = {
+                        val route = if (it != null) "${Routes.LANCAMENTO_CONTA}?lancamentoId=$it" else Routes.LANCAMENTO_CONTA
+                        navController.navigate(route)
+                    }
+                )
             }
-            composable(Routes.LANCAMENTO_CONTA) {
+            composable(
+                route = "${Routes.LANCAMENTO_CONTA}?lancamentoId={lancamentoId}",
+                arguments = listOf(navArgument("lancamentoId") { 
+                    type = NavType.StringType
+                    nullable = true 
+                })
+            ) {
                 var categorias by remember { mutableStateOf<List<Categorias>>(emptyList()) }
+                val lancamentoId = it.arguments?.getString("lancamentoId")
 
                 LaunchedEffect(Unit) {
                     withContext(Dispatchers.IO) {
@@ -116,14 +134,15 @@ fun AppScaffold() {
                     onSaveClick = {
                         if (viewModel.salvarConta()) {
                             Toast.makeText(context, "Conta salva com sucesso!", Toast.LENGTH_SHORT).show()
-                            navController.navigateUp()
+                            navController.popBackStack()
                         } else {
                             viewModel.mensagemErro?.let {
                                 Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
-                    onBackClick = { navController.navigateUp() }
+                    onBackClick = { navController.popBackStack() },
+                    lancamentoId = lancamentoId?.toLongOrNull()
                 )
             }
             composable(Routes.CADASTRO_CATEGORIA) {

@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.DrawerState
@@ -55,7 +57,7 @@ import java.util.Locale
 @Composable
 fun DashboardScreen(
     drawerState: DrawerState,
-    onNavigateToLancamento: () -> Unit,
+    onNavigateToLancamento: (String?) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel(),
 ) {
@@ -82,7 +84,7 @@ fun DashboardScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToLancamento,
+                onClick = { onNavigateToLancamento(null) },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Adicionar Lançamento")
@@ -93,7 +95,9 @@ fun DashboardScreen(
             modifier = Modifier.padding(paddingValues),
             totalGastoMes = totalGastoMes,
             categoriasMaisGastas = categoriasMaisGastas,
-            ultimosLancamentos = ultimosLancamentos
+            ultimosLancamentos = ultimosLancamentos,
+            onEdit = { onNavigateToLancamento(it._id.toString()) },
+            onDelete = { viewModel.deleteLancamento(it) }
         )
     }
 }
@@ -104,7 +108,9 @@ fun DashboardContent(
     modifier: Modifier = Modifier,
     totalGastoMes: BigDecimal,
     categoriasMaisGastas: List<CategoriaMaisGasta>,
-    ultimosLancamentos: List<UltimoLancamento>
+    ultimosLancamentos: List<UltimoLancamento>,
+    onEdit: (UltimoLancamento) -> Unit,
+    onDelete: (UltimoLancamento) -> Unit
 ) {
     Column(
         modifier = modifier
@@ -114,7 +120,7 @@ fun DashboardContent(
     ) {
         TotalGastoCard(totalGastoMes)
         CategoriasMaisGastasCarousel(categoriasMaisGastas)
-        UltimosLancamentosList(ultimosLancamentos)
+        UltimosLancamentosList(ultimosLancamentos, onEdit, onDelete)
     }
 }
 
@@ -186,7 +192,11 @@ fun CategoriaCard(categoria: CategoriaMaisGasta) {
 
 // Lista com os últimos lançamentos
 @Composable
-fun UltimosLancamentosList(lancamentos: List<UltimoLancamento>) {
+fun UltimosLancamentosList(
+    lancamentos: List<UltimoLancamento>,
+    onEdit: (UltimoLancamento) -> Unit,
+    onDelete: (UltimoLancamento) -> Unit
+    ) {
     Column {
         Text(text = "Últimos Lançamentos", style = MaterialTheme.typography.titleMedium)
         LazyColumn(
@@ -194,7 +204,7 @@ fun UltimosLancamentosList(lancamentos: List<UltimoLancamento>) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(lancamentos) { lancamento ->
-                LancamentoRow(lancamento)
+                LancamentoRow(lancamento, onEdit, onDelete)
             }
         }
     }
@@ -202,7 +212,11 @@ fun UltimosLancamentosList(lancamentos: List<UltimoLancamento>) {
 
 // Linha de um lançamento
 @Composable
-fun LancamentoRow(lancamento: UltimoLancamento) {
+fun LancamentoRow(
+    lancamento: UltimoLancamento,
+    onEdit: (UltimoLancamento) -> Unit,
+    onDelete: (UltimoLancamento) -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -227,11 +241,22 @@ fun LancamentoRow(lancamento: UltimoLancamento) {
             val valorFormatado = numberFormat.format(lancamento.valor)
             val textoValor = if (isPerda) "- $valorFormatado" else "+ $valorFormatado"
 
-            Text(
-                text = textoValor,
-                color = cor,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = textoValor,
+                    color = cor,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                IconButton(onClick = { onEdit(lancamento) }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar")
+                }
+                IconButton(onClick = { onDelete(lancamento) }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Excluir")
+                }
+            }
         }
     }
 }
@@ -249,10 +274,10 @@ fun DashboardScreenPreview() {
             CategoriaMaisGasta("Saúde", BigDecimal("300.00"), 1)
         )
         val mockLancamentos = listOf(
-            UltimoLancamento("Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),
-            UltimoLancamento("Cinema", "Lazer", BigDecimal("80.00"), LocalDate.now().minusDays(1).toString(), TipoCategoria.Perda.name),
-            UltimoLancamento("Salário", "Salário", BigDecimal("5000.00"), LocalDate.now().minusDays(2).toString(), TipoCategoria.Ganho.name),
-            UltimoLancamento("Posto Shell", "Transporte", BigDecimal("150.00"), LocalDate.now().minusDays(3).toString(), TipoCategoria.Perda.name)
+            UltimoLancamento(1,"Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),
+            UltimoLancamento(2,"Cinema", "Lazer", BigDecimal("80.00"), LocalDate.now().minusDays(1).toString(), TipoCategoria.Perda.name),
+            UltimoLancamento(3,"Salário", "Salário", BigDecimal("5000.00"), LocalDate.now().minusDays(2).toString(), TipoCategoria.Ganho.name),
+            UltimoLancamento(4,"Posto Shell", "Transporte", BigDecimal("150.00"), LocalDate.now().minusDays(3).toString(), TipoCategoria.Perda.name)
         )
 
         Scaffold(
@@ -276,7 +301,9 @@ fun DashboardScreenPreview() {
                 modifier = Modifier.padding(paddingValues),
                 totalGastoMes = BigDecimal("2450.80"),
                 categoriasMaisGastas = mockCategorias,
-                ultimosLancamentos = mockLancamentos
+                ultimosLancamentos = mockLancamentos,
+                onEdit = {},
+                onDelete = {}
             )
         }
     }

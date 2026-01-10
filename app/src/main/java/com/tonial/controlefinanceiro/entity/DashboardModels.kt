@@ -9,6 +9,7 @@ data class CategoriaMaisGasta(
 )
 
 data class UltimoLancamento(
+    val _id: Long,
     val descricao: String,
     val categoria: String,
     val valor: BigDecimal,

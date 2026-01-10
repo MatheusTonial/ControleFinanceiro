@@ -54,12 +54,21 @@ fun TelaLancamentoConta(
     viewModel: FluxoViewModel,
     categorias: List<Categorias>,
     onSaveClick: () -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    lancamentoId: Long? = null
 ) {
+    LaunchedEffect(lancamentoId) {
+        if (lancamentoId != null) {
+            viewModel.loadConta(lancamentoId)
+        } else {
+            viewModel.limpaConta()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Lançamento de Conta") },
+                title = { Text(if (lancamentoId == null) "Novo Lançamento" else "Editar Lançamento") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
@@ -74,16 +83,14 @@ fun TelaLancamentoConta(
         var selectedCategoryText by remember(viewModel.categoria_id_conta, categorias) {
             mutableStateOf(categorias.find { it._id == viewModel.categoria_id_conta }?.descricao ?: "")
         }
-        var valorText by remember { mutableStateOf("") }
-
-        LaunchedEffect(viewModel.valor_conta) {
-            if (viewModel.valor_conta == 0.0) {
-                valorText = ""
-            }
+        var valorText by remember(viewModel.valor_conta) {
+            mutableStateOf(if (viewModel.valor_conta == 0.0) "" else viewModel.valor_conta.toString())
         }
 
         if (showDatePicker) {
-            val datePickerState = rememberDatePickerState()
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = viewModel.data_conta.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            )
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
                 confirmButton = {

@@ -22,7 +22,14 @@ class HistoricoViewModel(application: Application) : AndroidViewModel(applicatio
     private val _categorias = MutableStateFlow<List<Categorias>>(emptyList())
     val categorias: StateFlow<List<Categorias>> = _categorias
 
+    private var currentDataInicio: LocalDate = LocalDate.now().withDayOfMonth(1)
+    private var currentDataFim: LocalDate = LocalDate.now()
+    private var currentCategoriaId: Long? = null
+
     fun loadHistorico(dataInicio: LocalDate, dataFim: LocalDate, categoriaId: Long?) {
+        currentDataInicio = dataInicio
+        currentDataFim = dataFim
+        currentCategoriaId = categoriaId
         viewModelScope.launch {
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
             _historico.value = db.getHistorico(dataInicio.format(formatter), dataFim.format(formatter), categoriaId)
@@ -32,6 +39,13 @@ class HistoricoViewModel(application: Application) : AndroidViewModel(applicatio
     fun loadCategorias() {
         viewModelScope.launch {
             _categorias.value = db.getAllCategorias()
+        }
+    }
+
+    fun deleteLancamento(lancamento: UltimoLancamento) {
+        viewModelScope.launch {
+            db.deleteLancamentoById(lancamento._id)
+            loadHistorico(currentDataInicio, currentDataFim, currentCategoriaId)
         }
     }
 }

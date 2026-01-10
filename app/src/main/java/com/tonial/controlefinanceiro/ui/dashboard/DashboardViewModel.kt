@@ -32,4 +32,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             _ultimosLancamentos.value = dbHandler.getUltimosLancamentos()
         }
     }
+
+    fun deleteLancamento(lancamento: UltimoLancamento) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHandler.deleteLancamentoById(lancamento._id)
+            loadDashboardData()
+        }
+    }
 }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -60,27 +61,50 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HistoricoScreen(
     drawerState: DrawerState,
+    onNavigateToLancamento: (String?) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoricoViewModel = viewModel(),
 ) {
-    // Coleta os estados do ViewModel
     val historico by viewModel.historico.collectAsState()
     val categorias by viewModel.categorias.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Estados para os filtros de data e categoria
     var dataInicio by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
     var dataFim by remember { mutableStateOf(LocalDate.now()) }
     var selectedCategoria by remember { mutableStateOf<Categorias?>(null) }
 
-    // Carrega as categorias ao iniciar a tela
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var lancamentoToDelete by remember { mutableStateOf<UltimoLancamento?>(null) }
+
     LaunchedEffect(Unit) {
         viewModel.loadCategorias()
     }
 
-    // Recarrega o histórico sempre que um filtro mudar
     LaunchedEffect(dataInicio, dataFim, selectedCategoria) {
         viewModel.loadHistorico(dataInicio, dataFim, selectedCategoria?._id)
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Excluir Lançamento") },
+            text = { Text("Tem certeza que deseja excluir este lançamento?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        lancamentoToDelete?.let { viewModel.deleteLancamento(it) }
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -96,7 +120,6 @@ fun HistoricoScreen(
             )
         }
     ) { paddingValues ->
-        // Conteúdo da tela de histórico
         HistoricoContent(
             modifier = Modifier.padding(paddingValues),
             historico = historico,
@@ -106,7 +129,12 @@ fun HistoricoScreen(
             selectedCategoria = selectedCategoria,
             onDataInicioChange = { dataInicio = it },
             onDataFimChange = { dataFim = it },
-            onCategoriaChange = { selectedCategoria = it }
+            onCategoriaChange = { selectedCategoria = it },
+            onEdit = { onNavigateToLancamento(it._id.toString()) },
+            onDelete = {
+                lancamentoToDelete = it
+                showDeleteDialog = true
+            }
         )
     }
 }
@@ -121,13 +149,14 @@ fun HistoricoContent(
     selectedCategoria: Categorias?,
     onDataInicioChange: (LocalDate) -> Unit,
     onDataFimChange: (LocalDate) -> Unit,
-    onCategoriaChange: (Categorias?) -> Unit
+    onCategoriaChange: (Categorias?) -> Unit,
+    onEdit: (UltimoLancamento) -> Unit,
+    onDelete: (UltimoLancamento) -> Unit
 ) {
     Column(
         modifier = modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Componente com os filtros da tela
         Filtros(
             categorias = categorias,
             dataInicio = dataInicio,
@@ -137,10 +166,9 @@ fun HistoricoContent(
             onDataFimChange = onDataFimChange,
             onCategoriaChange = onCategoriaChange
         )
-        // Lista de lançamentos do histórico
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(historico) {
-                LancamentoRow(lancamento = it)
+            items(historico) { lancamento ->
+                LancamentoRow(lancamento = lancamento, onEdit = onEdit, onDelete = onDelete)
             }
         }
     }
@@ -159,11 +187,9 @@ fun Filtros(
 ) {
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
-    // Estados para controlar a exibição dos DatePickers
     val showDatePickerInicio = remember { mutableStateOf(false) }
     val showDatePickerFim = remember { mutableStateOf(false) }
 
-    // Campos de texto para as datas com seletor
     Row(verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
             value = dataInicio.format(formatter),
@@ -192,7 +218,6 @@ fun Filtros(
         )
     }
 
-    // DatePickerDialog para a data de início
     if (showDatePickerInicio.value) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = dataInicio.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -218,7 +243,6 @@ fun Filtros(
         }
     }
 
-    // DatePickerDialog para a data de fim
     if (showDatePickerFim.value) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = dataFim.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -244,7 +268,6 @@ fun Filtros(
         }
     }
 
-    // Dropdown para selecionar a categoria
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
@@ -284,12 +307,10 @@ fun Filtros(
         }
     }
 
-    // Botões para filtros de período rápidos, com preenchimento ajustado para caber em uma linha.
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Botão para filtrar pelo mês anterior
         Button(
             onClick = {
                 val mesAnterior = LocalDate.now().minusMonths(1)
@@ -301,7 +322,6 @@ fun Filtros(
         ) {
             Text("Mês anterior")
         }
-        // Botão para filtrar pelo mês atual
         Button(
             onClick = {
                 val hoje = LocalDate.now()
@@ -313,7 +333,6 @@ fun Filtros(
         ) {
             Text("Mês atual")
         }
-        // Botão para filtrar pelos últimos 7 dias
         Button(
             onClick = {
                 val hoje = LocalDate.now()
@@ -334,10 +353,10 @@ fun Filtros(
 fun HistoricoScreenPreview() {
     ControleFinanceiroTheme {
         val mockLancamentos = listOf(
-            UltimoLancamento("Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),
-            UltimoLancamento("Cinema", "Lazer", BigDecimal("80.00"), LocalDate.now().minusDays(1).toString(), TipoCategoria.Perda.name),
-            UltimoLancamento("Salário", "Salário", BigDecimal("5000.00"), LocalDate.now().minusDays(2).toString(), TipoCategoria.Ganho.name),
-            UltimoLancamento("Posto Shell", "Transporte", BigDecimal("150.00"), LocalDate.now().minusDays(3).toString(), TipoCategoria.Perda.name)
+            UltimoLancamento(1,"Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),
+            UltimoLancamento(2,"Cinema", "Lazer", BigDecimal("80.00"), LocalDate.now().minusDays(1).toString(), TipoCategoria.Perda.name),
+            UltimoLancamento(3,"Salário", "Salário", BigDecimal("5000.00"), LocalDate.now().minusDays(2).toString(), TipoCategoria.Ganho.name),
+            UltimoLancamento(4,"Posto Shell", "Transporte", BigDecimal("150.00"), LocalDate.now().minusDays(3).toString(), TipoCategoria.Perda.name)
         )
 
         Scaffold(
@@ -361,7 +380,9 @@ fun HistoricoScreenPreview() {
                 selectedCategoria = null,
                 onDataInicioChange = {},
                 onDataFimChange = {},
-                onCategoriaChange = {}
+                onCategoriaChange = {},
+                onEdit = {},
+                onDelete = {}
             )
         }
     }
