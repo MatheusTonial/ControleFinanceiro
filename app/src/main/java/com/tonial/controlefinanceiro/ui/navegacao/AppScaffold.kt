@@ -28,6 +28,7 @@ import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.model.FluxoViewModel
 import com.tonial.controlefinanceiro.ui.dashboard.DashboardScreen
 import com.tonial.controlefinanceiro.ui.historico.HistoricoScreen
+import com.tonial.controlefinanceiro.ui.splash.SplashScreen
 import com.tonial.controlefinanceiro.ui.telas.TelaCategoria
 import com.tonial.controlefinanceiro.ui.telas.TelaLancamentoConta
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 object Routes {
+    const val SPLASH = "splash"
     const val DASHBOARD = "dashboard"
     const val LANCAMENTO_CONTA = "lancamento_conta"
     const val CADASTRO_CATEGORIA = "cadastro_categoria"
@@ -54,46 +56,56 @@ fun AppScaffold() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val isSplashScreen = currentRoute == Routes.SPLASH
+
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = !isSplashScreen,
         drawerContent = {
             ModalDrawerSheet {
                 NavigationDrawerItem(
                     label = { Text(text = "Dashboard") },
                     selected = currentRoute == Routes.DASHBOARD,
-                    onClick = { 
-                        navController.navigate(Routes.DASHBOARD)
+                    onClick = {
+                        navController.navigate(Routes.DASHBOARD) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
                     }
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "Histórico de lançamentos") },
                     selected = currentRoute == Routes.HISTORICO,
-                    onClick = { 
-                        navController.navigate(Routes.HISTORICO)
+                    onClick = {
+                        navController.navigate(Routes.HISTORICO) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
                     }
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "Lançamento de Conta") },
                     selected = currentRoute?.startsWith(Routes.LANCAMENTO_CONTA) == true,
-                    onClick = { 
-                        navController.navigate(Routes.LANCAMENTO_CONTA)
+                    onClick = {
+                        navController.navigate(Routes.LANCAMENTO_CONTA) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
                     }
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "Cadastro de Categoria") },
                     selected = currentRoute == Routes.CADASTRO_CATEGORIA,
-                    onClick = { 
-                        navController.navigate(Routes.CADASTRO_CATEGORIA)
+                    onClick = {
+                        navController.navigate(Routes.CADASTRO_CATEGORIA) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
                     }
                 )
             }
         }
     ) { 
-        NavHost(navController = navController, startDestination = Routes.DASHBOARD) {
+        NavHost(navController = navController, startDestination = Routes.SPLASH) {
+            composable(Routes.SPLASH) {
+                SplashScreen(onTimeout = {
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                })
+            }
             composable(Routes.DASHBOARD) {
                 DashboardScreen(
                     drawerState = drawerState,
@@ -151,8 +163,9 @@ fun AppScaffold() {
                     onSaveClick = {
                         viewModel.salvarCategoria()
                         Toast.makeText(context, "Categoria salva com sucesso!", Toast.LENGTH_SHORT).show()
+                        navController.popBackStack()
                     },
-                    onBackClick = { navController.navigateUp() }
+                    onBackClick = { navController.popBackStack() }
                 )
             }
         }
