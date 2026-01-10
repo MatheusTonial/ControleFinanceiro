@@ -67,7 +67,7 @@ fun AppScaffold() {
                     }
                 )
                 NavigationDrawerItem(
-                    label = { Text(text = "Histórico") },
+                    label = { Text(text = "Histórico de lançamentos") },
                     selected = currentRoute == Routes.HISTORICO,
                     onClick = { 
                         navController.navigate(Routes.HISTORICO)
