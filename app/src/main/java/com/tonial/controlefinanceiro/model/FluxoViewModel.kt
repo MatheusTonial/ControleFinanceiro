@@ -19,7 +19,7 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
     private val dbHandler = DatabaseHandler.getInstance(application)
 
     //region Categoria
-
+    var categoriaId by mutableStateOf<Long?>(null)
     var descricao_categoria by mutableStateOf("")
     var tipo_categoria by mutableStateOf(TipoCategoria.Perda)
     var ordem_categoria by mutableStateOf(99)
@@ -37,20 +37,36 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun limpaCategoria(){
+        categoriaId = null
         descricao_categoria = ""
         tipo_categoria = TipoCategoria.Perda
         ordem_categoria = 99
     }
 
+    fun loadCategoria(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHandler.getCategoriaById(id)?.let { categoria ->
+                categoriaId = categoria._id
+                descricao_categoria = categoria.descricao
+                tipo_categoria = categoria.tipo
+                ordem_categoria = categoria.ordem
+            }
+        }
+    }
+
     fun salvarCategoria() {
         viewModelScope.launch(Dispatchers.IO) {
-            val novaCategoria = Categorias(
-                _id = 0, // O ID será gerado automaticamente pelo banco
+            val categoria = Categorias(
+                _id = categoriaId ?: 0,
                 descricao = descricao_categoria,
                 tipo = tipo_categoria,
                 ordem = ordem_categoria
             )
-            dbHandler.addCategoria(novaCategoria)
+            if (categoriaId == null) {
+                dbHandler.addCategoria(categoria)
+            } else {
+                dbHandler.updateCategoria(categoria)
+            }
             limpaCategoria()
         }
     }

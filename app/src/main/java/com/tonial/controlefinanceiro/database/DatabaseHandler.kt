@@ -12,6 +12,7 @@ import com.tonial.controlefinanceiro.entity.UltimoLancamento
 import java.math.BigDecimal
 import java.time.LocalDate
 
+// Classe de acesso ao banco de dados SQLite do aplicativo.
 class DatabaseHandler private constructor(context: Context) : 
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -22,6 +23,7 @@ class DatabaseHandler private constructor(context: Context) :
         @Volatile
         private var INSTANCE: DatabaseHandler? = null
 
+        // Garante que apenas uma instância do DatabaseHandler seja criada (Singleton).
         fun getInstance(context: Context): DatabaseHandler {
             return INSTANCE ?: synchronized(this) {
                 val instance = DatabaseHandler(context.applicationContext)
@@ -47,6 +49,7 @@ class DatabaseHandler private constructor(context: Context) :
         private const val KEY_CATEGORIA_CONTA = "categoria_id"
     }
 
+    // Cria as tabelas do banco de dados na primeira execução.
     override fun onCreate(db: SQLiteDatabase?) {
         val createCategoriaTable = "CREATE TABLE $TABLE_CATEGORIAS(" +
                 "$KEY_ID_CATEGORIA INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -55,7 +58,7 @@ class DatabaseHandler private constructor(context: Context) :
                 "$KEY_ORDEM_CATEGORIA INTEGER)"
         db?.execSQL(createCategoriaTable)
 
-        // Inserir categorias iniciais
+        // Inseri algumas categorias iniciais para perda.
         db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Mercado', 'Perda', 0)")
         db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Alimentação', 'Perda', 1)")
         db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Assinaturas', 'Perda', 2)")
@@ -81,13 +84,14 @@ class DatabaseHandler private constructor(context: Context) :
         db?.execSQL(createContaTable)
     }
 
+    // Executa migrações do banco de dados ao atualizar a versão.
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int ) {
         if (oldVersion < 2) {
-            // Migrations for version 2
-            // db?.execSQL("ALTER TABLE $TABLE_CATEGORIAS ADD COLUMN new_column TEXT;")
+            // Exemplo: db?.execSQL("ALTER TABLE $TABLE_CATEGORIAS ADD COLUMN nova_coluna TEXT;")
         }
     }
 
+    // Adiciona uma nova categoria ao banco de dados.
     fun addCategoria(categoria: Categorias): Long {
         val db = this.writableDatabase
         val values = ContentValues().apply {
@@ -97,7 +101,42 @@ class DatabaseHandler private constructor(context: Context) :
         }
         return db.insert(TABLE_CATEGORIAS, null, values)
     }
+    
+    // Atualiza uma categoria existente no banco de dados.
+    fun updateCategoria(categoria: Categorias): Int {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(KEY_DESCRICAO_CATEGORIA, categoria.descricao)
+            put(KEY_TIPO_CATEGORIA, categoria.tipo.name)
+            put(KEY_ORDEM_CATEGORIA, categoria.ordem)
+        }
+        return db.update(TABLE_CATEGORIAS, values, "$KEY_ID_CATEGORIA = ?", arrayOf(categoria._id.toString()))
+    }
 
+    // Exclui uma categoria do banco de dados pelo seu ID.
+    fun deleteCategoriaById(id: Long) {
+        val db = this.writableDatabase
+        db.delete(TABLE_CATEGORIAS, "$KEY_ID_CATEGORIA = ?", arrayOf(id.toString()))
+    }
+
+    // Busca uma categoria pelo seu ID.
+    fun getCategoriaById(id: Long): Categorias? {
+        val db = this.readableDatabase
+        var categoria: Categorias? = null
+        db.rawQuery("SELECT * FROM $TABLE_CATEGORIAS WHERE $KEY_ID_CATEGORIA = ?", arrayOf(id.toString())).use { cursor ->
+            if (cursor.moveToFirst()) {
+                categoria = Categorias(
+                    _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CATEGORIA)),
+                    descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA)),
+                    tipo = TipoCategoria.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))),
+                    ordem = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ORDEM_CATEGORIA))
+                )
+            }
+        }
+        return categoria
+    }
+
+    // Retorna todas as categorias cadastradas, ordenadas pela ordem e ID.
     fun getAllCategorias(): List<Categorias> {
         val categoriasList = ArrayList<Categorias>()
         val selectQuery = "SELECT * FROM $TABLE_CATEGORIAS ORDER BY $KEY_ORDEM_CATEGORIA ASC, $KEY_ID_CATEGORIA ASC"
@@ -118,6 +157,7 @@ class DatabaseHandler private constructor(context: Context) :
         return categoriasList
     }
 
+    // Adiciona uma nova conta (lançamento) ao banco de dados.
     fun addConta(conta: Contas): Long {
         val db = this.writableDatabase
         val values = ContentValues().apply {
@@ -130,6 +170,7 @@ class DatabaseHandler private constructor(context: Context) :
         return db.insert(TABLE_CONTAS, null, values)
     }
 
+    // Atualiza uma conta existente no banco de dados.
     fun updateConta(conta: Contas): Int {
         val db = this.writableDatabase
         val values = ContentValues().apply {
@@ -142,11 +183,13 @@ class DatabaseHandler private constructor(context: Context) :
         return db.update(TABLE_CONTAS, values, "$KEY_ID_CONTA = ?", arrayOf(conta._id.toString()))
     }
 
+    // Exclui um lançamento do banco de dados pelo seu ID.
     fun deleteLancamentoById(id: Long) {
         val db = this.writableDatabase
         db.delete(TABLE_CONTAS, "$KEY_ID_CONTA = ?", arrayOf(id.toString()))
     }
     
+    // Busca uma conta pelo seu ID.
     fun getContaById(id: Long): Contas? {
         val db = this.readableDatabase
         var conta: Contas? = null
@@ -165,6 +208,7 @@ class DatabaseHandler private constructor(context: Context) :
         return conta
     }
 
+    // Retorna o total de gastos no mês atual.
     fun getTotalGastoMesAtual(): BigDecimal {
         val db = this.readableDatabase
         val query = """
@@ -183,6 +227,7 @@ class DatabaseHandler private constructor(context: Context) :
         return total
     }
 
+    // Retorna as 5 categorias com mais gastos no mês atual.
     fun getCategoriasMaisGastasMesAtual(): List<CategoriaMaisGasta> {
         val categorias = mutableListOf<CategoriaMaisGasta>()
         val db = this.readableDatabase
@@ -209,6 +254,7 @@ class DatabaseHandler private constructor(context: Context) :
         return categorias
     }
 
+    // Retorna os 10 últimos lançamentos.
     fun getUltimosLancamentos(): List<UltimoLancamento> {
         val lancamentos = mutableListOf<UltimoLancamento>()
         val db = this.readableDatabase
@@ -242,6 +288,7 @@ class DatabaseHandler private constructor(context: Context) :
         return lancamentos
     }
     
+    // Retorna o histórico de lançamentos com base nos filtros de data e categoria.
     fun getHistorico(
     dataInicio: String,
     dataFim: String,

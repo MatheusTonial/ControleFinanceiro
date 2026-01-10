@@ -29,6 +29,7 @@ import com.tonial.controlefinanceiro.model.FluxoViewModel
 import com.tonial.controlefinanceiro.ui.dashboard.DashboardScreen
 import com.tonial.controlefinanceiro.ui.historico.HistoricoScreen
 import com.tonial.controlefinanceiro.ui.splash.SplashScreen
+import com.tonial.controlefinanceiro.ui.telas.ListarCategoriasScreen
 import com.tonial.controlefinanceiro.ui.telas.TelaCategoria
 import com.tonial.controlefinanceiro.ui.telas.TelaLancamentoConta
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +42,7 @@ object Routes {
     const val LANCAMENTO_CONTA = "lancamento_conta"
     const val CADASTRO_CATEGORIA = "cadastro_categoria"
     const val HISTORICO = "historico"
+    const val LISTA_CATEGORIA = "lista_categoria"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,6 +94,14 @@ fun AppScaffold() {
                     selected = currentRoute == Routes.CADASTRO_CATEGORIA,
                     onClick = {
                         navController.navigate(Routes.CADASTRO_CATEGORIA) { launchSingleTop = true }
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text(text = "Lista de Categoria") },
+                    selected = currentRoute == Routes.LISTA_CATEGORIA,
+                    onClick = {
+                        navController.navigate(Routes.LISTA_CATEGORIA) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
                     }
                 )
@@ -157,7 +167,14 @@ fun AppScaffold() {
                     lancamentoId = lancamentoId?.toLongOrNull()
                 )
             }
-            composable(Routes.CADASTRO_CATEGORIA) {
+            composable(
+                route = "${Routes.CADASTRO_CATEGORIA}?categoriaId={categoriaId}",
+                arguments = listOf(navArgument("categoriaId") {
+                    type = NavType.StringType
+                    nullable = true
+                })
+            ) {
+                val categoriaId = it.arguments?.getString("categoriaId")
                 TelaCategoria(
                     viewModel = viewModel,
                     onSaveClick = {
@@ -165,7 +182,17 @@ fun AppScaffold() {
                         Toast.makeText(context, "Categoria salva com sucesso!", Toast.LENGTH_SHORT).show()
                         navController.popBackStack()
                     },
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { navController.popBackStack() },
+                    categoriaId = categoriaId?.toLongOrNull()
+                )
+            }
+            composable(Routes.LISTA_CATEGORIA) {
+                ListarCategoriasScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onNavigateToCategoria = {
+                        val route = if (it != null) "${Routes.CADASTRO_CATEGORIA}?categoriaId=$it" else Routes.CADASTRO_CATEGORIA
+                        navController.navigate(route)
+                    }
                 )
             }
         }

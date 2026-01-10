@@ -155,7 +155,7 @@ fun TotalGastoCard(total: BigDecimal) {
 @Composable
 fun CategoriasMaisGastasCarousel(categorias: List<CategoriaMaisGasta>) {
     Column {
-        Text(text = "Top 5 categorias", style = MaterialTheme.typography.titleMedium)
+        Text(text = "Top categorias do mês", style = MaterialTheme.typography.titleMedium)
         LazyRow(
             contentPadding = PaddingValues(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
