@@ -55,7 +55,8 @@ fun TelaLancamentoConta(
     categorias: List<Categorias>,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
-    lancamentoId: Long? = null
+    lancamentoId: Long? = null,
+    isOpenedFromWidget: Boolean = false
 ) {
     LaunchedEffect(lancamentoId) {
         if (lancamentoId != null) {

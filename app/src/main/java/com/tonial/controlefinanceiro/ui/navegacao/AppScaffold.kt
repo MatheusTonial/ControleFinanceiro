@@ -143,6 +143,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
             ) {
                 var categorias by remember { mutableStateOf<List<Categorias>>(emptyList()) }
                 val lancamentoId = it.arguments?.getString("lancamentoId")
+                val isOpenedFromWidget = startDestination == Routes.LANCAMENTO_CONTA
 
                 LaunchedEffect(Unit) {
                     withContext(Dispatchers.IO) {
@@ -156,15 +157,26 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onSaveClick = {
                         if (viewModel.salvarConta()) {
                             Toast.makeText(context, "Conta salva com sucesso!", Toast.LENGTH_SHORT).show()
-                            navController.popBackStack()
+                            if (isOpenedFromWidget) {
+                                navController.navigate(Routes.DASHBOARD) { popUpTo(Routes.LANCAMENTO_CONTA) { inclusive = true } }
+                            } else {
+                                navController.popBackStack()
+                            }
                         } else {
                             viewModel.mensagemErro?.let {
                                 Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
-                    onBackClick = { navController.popBackStack() },
-                    lancamentoId = lancamentoId?.toLongOrNull()
+                    onBackClick = {
+                         if (isOpenedFromWidget) {
+                            navController.navigate(Routes.DASHBOARD) { popUpTo(Routes.LANCAMENTO_CONTA) { inclusive = true } }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    },
+                    lancamentoId = lancamentoId?.toLongOrNull(),
+                    isOpenedFromWidget = isOpenedFromWidget
                 )
             }
             composable(
