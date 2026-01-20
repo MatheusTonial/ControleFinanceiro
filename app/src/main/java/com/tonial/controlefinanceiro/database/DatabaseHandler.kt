@@ -269,7 +269,7 @@ class DatabaseHandler private constructor(context: Context) :
             FROM $TABLE_CATEGORIAS T1
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE date(T2.$KEY_DATA_CONTA) <= date('now')
-            ORDER BY T2.$KEY_DATA_CONTA DESC
+            ORDER BY T2.$KEY_DATA_CONTA DESC, T2.$KEY_ID_CONTA DESC
             LIMIT 10
         """
         db.rawQuery(query, null).use { cursor ->
