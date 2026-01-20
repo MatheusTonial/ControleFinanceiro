@@ -47,7 +47,7 @@ object Routes {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppScaffold() {
+fun AppScaffold(startDestination: String = Routes.SPLASH) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -108,7 +108,7 @@ fun AppScaffold() {
             }
         }
     ) { 
-        NavHost(navController = navController, startDestination = Routes.SPLASH) {
+        NavHost(navController = navController, startDestination = startDestination) {
             composable(Routes.SPLASH) {
                 SplashScreen(onTimeout = {
                     navController.navigate(Routes.DASHBOARD) {
