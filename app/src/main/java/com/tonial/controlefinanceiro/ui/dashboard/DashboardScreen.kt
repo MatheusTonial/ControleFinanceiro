@@ -1,6 +1,8 @@
 package com.tonial.controlefinanceiro.ui.dashboard
 
 import android.content.res.Configuration
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DrawerState
@@ -56,6 +59,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+// Tela principal do dashboard, que gerencia o estado e a navegação.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -64,11 +68,13 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel(),
 ) {
+    // Coleta os estados do ViewModel para o total gasto, categorias e lançamentos.
     val totalGastoMes by viewModel.totalGastoMes.collectAsState()
     val categoriasMaisGastas by viewModel.categoriasMaisGastas.collectAsState()
     val ultimosLancamentos by viewModel.ultimosLancamentos.collectAsState()
     val scope = rememberCoroutineScope()
 
+    // Carrega os dados do dashboard ao iniciar a tela.
     LaunchedEffect(Unit) {
         viewModel.loadDashboardData()
     }
@@ -79,6 +85,7 @@ fun DashboardScreen(
             TopAppBar(
                 title = { Text("Dashboard") },
                 navigationIcon = {
+                    // Ícone para abrir o menu lateral.
                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
@@ -86,6 +93,7 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
+            // Botão flutuante para adicionar um novo lançamento.
             FloatingActionButton(
                 onClick = { onNavigateToLancamento(null) },
                 containerColor = MaterialTheme.colorScheme.primary
@@ -94,6 +102,7 @@ fun DashboardScreen(
             }
         }
     ) { paddingValues ->
+        // Exibe o conteúdo principal do dashboard.
         DashboardContent(
             modifier = Modifier.padding(paddingValues),
             totalGastoMes = totalGastoMes,
@@ -105,7 +114,7 @@ fun DashboardScreen(
     }
 }
 
-// Conteúdo do dashboard
+// Organiza o conteúdo do dashboard, gerenciando o estado do filtro de categoria.
 @Composable
 fun DashboardContent(
     modifier: Modifier = Modifier,
@@ -115,6 +124,16 @@ fun DashboardContent(
     onEdit: (UltimoLancamento) -> Unit,
     onDelete: (UltimoLancamento) -> Unit
 ) {
+    // Estado para armazenar o nome da categoria selecionada para filtro.
+    var selectedCategoria by remember { mutableStateOf<String?>(null) }
+
+    // Filtra a lista de últimos lançamentos com base na categoria selecionada.
+    val filteredLancamentos = if (selectedCategoria == null) {
+        ultimosLancamentos
+    } else {
+        ultimosLancamentos.filter { it.categoria == selectedCategoria }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -122,12 +141,21 @@ fun DashboardContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         TotalGastoCard(totalGastoMes)
-        CategoriasMaisGastasCarousel(categoriasMaisGastas)
-        UltimosLancamentosList(ultimosLancamentos, onEdit, onDelete)
+        // Passa o estado e o callback de clique para o carrossel de categorias.
+        CategoriasMaisGastasCarousel(
+            categorias = categoriasMaisGastas,
+            selectedCategoria = selectedCategoria,
+            onCategoriaClick = { categoriaNome ->
+                // Alterna a seleção: seleciona se for diferente, deseleciona se for a mesma.
+                selectedCategoria = if (selectedCategoria == categoriaNome) null else categoriaNome
+            }
+        )
+        // Exibe a lista de lançamentos (filtrada ou não).
+        UltimosLancamentosList(filteredLancamentos, onEdit, onDelete)
     }
 }
 
-// Card com o total de gastos do mês
+// Card que exibe o total de gastos do mês.
 @Composable
 fun TotalGastoCard(total: BigDecimal) {
     Card(
@@ -151,9 +179,13 @@ fun TotalGastoCard(total: BigDecimal) {
     }
 }
 
-// Carrossel com as 5 categorias com mais gastos
+// Carrossel horizontal para as 5 categorias com mais gastos.
 @Composable
-fun CategoriasMaisGastasCarousel(categorias: List<CategoriaMaisGasta>) {
+fun CategoriasMaisGastasCarousel(
+    categorias: List<CategoriaMaisGasta>,
+    selectedCategoria: String?,
+    onCategoriaClick: (String) -> Unit
+) {
     Column {
         Text(text = "Top categorias do mês", style = MaterialTheme.typography.titleMedium)
         LazyRow(
@@ -161,24 +193,44 @@ fun CategoriasMaisGastasCarousel(categorias: List<CategoriaMaisGasta>) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(categorias) { categoria ->
-                CategoriaCard(categoria)
+                // Passa o callback de clique e se a categoria está selecionada para o Card.
+                CategoriaCard(
+                    categoria = categoria,
+                    isSelected = categoria.categoria == selectedCategoria,
+                    onClick = { onCategoriaClick(categoria.categoria) }
+                )
             }
         }
     }
 }
 
-// Card de uma categoria
+// Card individual para cada categoria, agora com estado de seleção e clique.
 @Composable
-fun CategoriaCard(categoria: CategoriaMaisGasta) {
-    Card {
+fun CategoriaCard(
+    categoria: CategoriaMaisGasta,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    // Adiciona uma borda se o card estiver selecionado.
+    val borderModifier = if (isSelected) {
+        Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CardDefaults.shape)
+    } else {
+        Modifier
+    }
+
+    Card(
+        modifier = Modifier
+            .clickable(onClick = onClick) // Adiciona o evento de clique.
+            .then(borderModifier) // Aplica a borda condicional.
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Nome da categoria em negrito
+            // Nome da categoria em negrito.
             Text(
                 text = categoria.categoria,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold
             )
-            // Ajusta o plural de "lançamento"
+            // Ajusta o plural de "lançamento".
             val lancamentoText = if (categoria.quantidadeLancamentos == 1) "lançamento" else "lançamentos"
             Text(
                 text = "${categoria.quantidadeLancamentos} $lancamentoText",
@@ -193,7 +245,7 @@ fun CategoriaCard(categoria: CategoriaMaisGasta) {
     }
 }
 
-// Lista com os últimos lançamentos
+// Lista vertical com os últimos lançamentos.
 @Composable
 fun UltimosLancamentosList(
     lancamentos: List<UltimoLancamento>,
@@ -213,7 +265,7 @@ fun UltimosLancamentosList(
     }
 }
 
-// Linha de um lançamento
+// Componente para uma única linha da lista de lançamentos.
 @Composable
 fun LancamentoRow(
     lancamento: UltimoLancamento,
@@ -231,6 +283,7 @@ fun LancamentoRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(lancamento.descricao, fontWeight = FontWeight.SemiBold)
 
+                // Formata a data para exibir apenas dia e mês.
                 val dataFormatada = try {
                     LocalDate.parse(lancamento.data).format(DateTimeFormatter.ofPattern("dd/MM"))
                 } catch (e: Exception) {
@@ -249,6 +302,7 @@ fun LancamentoRow(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Exibe o valor do lançamento com a cor correspondente.
                 Text(
                     text = textoValor,
                     color = cor,
@@ -256,6 +310,7 @@ fun LancamentoRow(
                     modifier = Modifier.padding(end = 8.dp)
                 )
 
+                // Menu de opções (Editar/Excluir) para cada lançamento.
                 Box {
                     IconButton(onClick = { expanded = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Mais opções")
@@ -285,6 +340,7 @@ fun LancamentoRow(
     }
 }
 
+// Preview da tela do dashboard para desenvolvimento.
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
