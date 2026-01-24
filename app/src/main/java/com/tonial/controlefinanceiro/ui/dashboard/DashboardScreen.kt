@@ -194,7 +194,8 @@ fun TotalGastoCard(total: BigDecimal, lancamentosCount: Int) {
                 Text(
                     text = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(total),
                     style = MaterialTheme.typography.headlineLarge,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold
                 )
             }
             val lancamentoText = "lanç."//if (lancamentosCount == 1) "\nlançamento" else "\nlançamentos"
