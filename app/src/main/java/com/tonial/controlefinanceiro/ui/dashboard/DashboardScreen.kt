@@ -6,10 +6,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -152,7 +155,11 @@ fun DashboardContent(
     ) {
         TotalGastoCard(totalGastoMes)
         // Linha para os cards de comparativo e projeção.
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        // O height(IntrinsicSize.Min) garante que os cards na Row tenham a mesma altura.
+        Row(
+            modifier = Modifier.height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             Box(modifier = Modifier.weight(1f)) {
                 ComparativoMesCard(variacao = variacaoMes, gastoProporcionalAnterior = gastoProporcionalMesAnterior)
             }
@@ -198,9 +205,11 @@ fun ComparativoMesCard(variacao: Double, gastoProporcionalAnterior: BigDecimal) 
     val icon = if (isPositive) Icons.Outlined.ArrowUpward else Icons.Outlined.ArrowDownward
     val numberFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    // O modificador fillMaxHeight garante que o card ocupe toda a altura definida pela Row.
+    Card(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+        // O verticalArrangement.SpaceBetween distribui o conteúdo verticalmente para alinhar com o card ao lado.
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(16.dp).fillMaxHeight(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(text = "VS. MÊS ANTERIOR", style = MaterialTheme.typography.titleSmall)
@@ -227,14 +236,18 @@ fun ComparativoMesCard(variacao: Double, gastoProporcionalAnterior: BigDecimal) 
 fun ProjecaoGastoCard(projecao: BigDecimal, mediaDiaria: BigDecimal) {
     val numberFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    // O modificador fillMaxHeight garante que o card ocupe toda a altura definida pela Row.
+    Card(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+        // O verticalArrangement.SpaceBetween distribui o conteúdo verticalmente para alinhar com o card ao lado.
+        Column(
+            modifier = Modifier.padding(16.dp).fillMaxHeight(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(text = "PROJEÇÃO MÊS", style = MaterialTheme.typography.titleSmall)
             Text(
                 text = numberFormat.format(projecao),
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 8.dp)
+                fontWeight = FontWeight.Bold
             )
             Text(
                 text = "${numberFormat.format(mediaDiaria)} / dia",
