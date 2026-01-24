@@ -82,6 +82,7 @@ fun DashboardScreen(
     val gastoProporcionalMesAnterior by viewModel.gastoProporcionalMesAnterior.collectAsState()
     val projecaoGastoMes by viewModel.projecaoGastoMes.collectAsState()
     val mediaDiariaAtual by viewModel.mediaDiariaAtual.collectAsState()
+    val lancamentosCount by viewModel.lancamentosCount.collectAsState()
     val scope = rememberCoroutineScope()
 
     // Carrega os dados do dashboard ao iniciar a tela.
@@ -113,6 +114,7 @@ fun DashboardScreen(
         DashboardContent(
             modifier = Modifier.padding(paddingValues),
             totalGastoMes = totalGastoMes,
+            lancamentosCount = lancamentosCount,
             categoriasMaisGastas = categoriasMaisGastas,
             ultimosLancamentos = ultimosLancamentos,
             variacaoMes = variacaoMes,
@@ -130,6 +132,7 @@ fun DashboardScreen(
 fun DashboardContent(
     modifier: Modifier = Modifier,
     totalGastoMes: BigDecimal,
+    lancamentosCount: Int,
     categoriasMaisGastas: List<CategoriaMaisGasta>,
     ultimosLancamentos: List<UltimoLancamento>,
     variacaoMes: Double,
@@ -153,7 +156,7 @@ fun DashboardContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        TotalGastoCard(totalGastoMes)
+        TotalGastoCard(total = totalGastoMes, lancamentosCount = lancamentosCount)
         // Linha para os cards de comparativo e projeção.
         // O height(IntrinsicSize.Min) garante que os cards na Row tenham a mesma altura.
         Row(
@@ -180,18 +183,27 @@ fun DashboardContent(
 
 // Card que exibe o total de gastos do mês.
 @Composable
-fun TotalGastoCard(total: BigDecimal) {
+fun TotalGastoCard(total: BigDecimal, lancamentosCount: Int) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(text = "TOTAL GASTO NO MÊS", style = MaterialTheme.typography.titleMedium)
+        Box(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "TOTAL GASTO NO MÊS", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(total),
+                    style = MaterialTheme.typography.headlineLarge,
+                    textAlign = TextAlign.Center
+                )
+            }
+            val lancamentoText = "lanç."//if (lancamentosCount == 1) "\nlançamento" else "\nlançamentos"
             Text(
-                text = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(total),
-                style = MaterialTheme.typography.headlineLarge,
-                textAlign = TextAlign.Center
+                text = "$lancamentosCount $lancamentoText",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.BottomEnd),
+                textAlign = TextAlign.End // Ou TextAlign.Center, dependendo do efeito desejado
             )
         }
     }
@@ -414,6 +426,7 @@ fun DashboardScreenPreview() {
             DashboardContent(
                 modifier = Modifier.padding(paddingValues),
                 totalGastoMes = BigDecimal("2450.80"),
+                lancamentosCount = 23,
                 categoriasMaisGastas = mockCategorias,
                 ultimosLancamentos = mockLancamentos,
                 variacaoMes = -15.5,

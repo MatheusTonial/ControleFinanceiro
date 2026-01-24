@@ -43,6 +43,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _mediaDiariaAtual = MutableStateFlow(BigDecimal.ZERO)
     val mediaDiariaAtual: StateFlow<BigDecimal> = _mediaDiariaAtual
 
+    // StateFlow para a contagem de lançamentos no mês atual.
+    private val _lancamentosCount = MutableStateFlow(0)
+    val lancamentosCount: StateFlow<Int> = _lancamentosCount
+
     fun loadDashboardData() {
         viewModelScope.launch(Dispatchers.IO) {
             // Carrega os dados existentes do dashboard.
@@ -50,6 +54,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             _totalGastoMes.value = totalGastoAtual
             _categoriasMaisGastas.value = dbHandler.getCategoriasMaisGastasMesAtual()
             _ultimosLancamentos.value = dbHandler.getUltimosLancamentos()
+            _lancamentosCount.value = dbHandler.getLancamentosCountMesAtual()
 
             // Define as datas para os cálculos.
             val hoje = LocalDate.now()

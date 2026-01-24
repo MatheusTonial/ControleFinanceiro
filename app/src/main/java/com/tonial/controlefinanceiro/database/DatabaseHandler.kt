@@ -249,6 +249,19 @@ class DatabaseHandler private constructor(context: Context) :
         return total
     }
 
+    // Retorna a contagem de todos os lançamentos do mês atual.
+    fun getLancamentosCountMesAtual(): Int {
+        val db = this.readableDatabase
+        val query = "SELECT COUNT($KEY_ID_CONTA) FROM $TABLE_CONTAS WHERE strftime('%Y-%m', $KEY_DATA_CONTA) = strftime('%Y-%m', 'now')"
+        var count = 0
+        db.rawQuery(query, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                count = cursor.getInt(0)
+            }
+        }
+        return count
+    }
+
     // Retorna as 5 categorias com mais gastos no mês atual.
     fun getCategoriasMaisGastasMesAtual(): List<CategoriaMaisGasta> {
         val categorias = mutableListOf<CategoriaMaisGasta>()
