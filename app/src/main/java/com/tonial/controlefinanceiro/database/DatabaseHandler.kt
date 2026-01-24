@@ -227,6 +227,28 @@ class DatabaseHandler private constructor(context: Context) :
         return total
     }
 
+    // Retorna o total de gastos do mês anterior para o comparativo.
+    fun getTotalGastoMesAnterior(): BigDecimal {
+        val db = this.readableDatabase
+        val query = """
+            SELECT SUM(T2.$KEY_VALOR_CONTA)
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now', '-1 month')
+        """
+        var total = BigDecimal.ZERO
+        db.rawQuery(query, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                // Evita erro se a soma for nula (nenhum gasto no mês anterior).
+                if (!cursor.isNull(0)) {
+                    total = BigDecimal(cursor.getDouble(0))
+                }
+            }
+        }
+        return total
+    }
+
     // Retorna as 5 categorias com mais gastos no mês atual.
     fun getCategoriasMaisGastasMesAtual(): List<CategoriaMaisGasta> {
         val categorias = mutableListOf<CategoriaMaisGasta>()

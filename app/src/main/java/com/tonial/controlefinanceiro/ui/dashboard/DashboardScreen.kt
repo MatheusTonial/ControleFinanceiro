@@ -18,6 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -58,6 +60,7 @@ import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.absoluteValue
 
 // Tela principal do dashboard, que gerencia o estado e a navegação.
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,6 +75,9 @@ fun DashboardScreen(
     val totalGastoMes by viewModel.totalGastoMes.collectAsState()
     val categoriasMaisGastas by viewModel.categoriasMaisGastas.collectAsState()
     val ultimosLancamentos by viewModel.ultimosLancamentos.collectAsState()
+    // Assume que estes novos estados virão do ViewModel.
+    val variacaoMes by viewModel.variacaoMes.collectAsState()
+    val gastoProporcionalMesAnterior by viewModel.gastoProporcionalMesAnterior.collectAsState()
     val scope = rememberCoroutineScope()
 
     // Carrega os dados do dashboard ao iniciar a tela.
@@ -102,12 +108,14 @@ fun DashboardScreen(
             }
         }
     ) { paddingValues ->
-        // Exibe o conteúdo principal do dashboard.
+        // Exibe o conteúdo principal do dashboard, agora incluindo os novos dados.
         DashboardContent(
             modifier = Modifier.padding(paddingValues),
             totalGastoMes = totalGastoMes,
             categoriasMaisGastas = categoriasMaisGastas,
             ultimosLancamentos = ultimosLancamentos,
+            variacaoMes = variacaoMes,
+            gastoProporcionalMesAnterior = gastoProporcionalMesAnterior,
             onEdit = { onNavigateToLancamento(it._id.toString()) },
             onDelete = { viewModel.deleteLancamento(it) }
         )
@@ -121,6 +129,9 @@ fun DashboardContent(
     totalGastoMes: BigDecimal,
     categoriasMaisGastas: List<CategoriaMaisGasta>,
     ultimosLancamentos: List<UltimoLancamento>,
+    // Recebe os novos dados para o card de comparativo.
+    variacaoMes: Double,
+    gastoProporcionalMesAnterior: BigDecimal,
     onEdit: (UltimoLancamento) -> Unit,
     onDelete: (UltimoLancamento) -> Unit
 ) {
@@ -141,6 +152,8 @@ fun DashboardContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         TotalGastoCard(totalGastoMes)
+        // Novo card de comparativo adicionado à tela.
+        ComparativoMesCard(variacao = variacaoMes, gastoProporcionalAnterior = gastoProporcionalMesAnterior)
         // Passa o estado e o callback de clique para o carrossel de categorias.
         CategoriasMaisGastasCarousel(
             categorias = categoriasMaisGastas,
@@ -175,6 +188,52 @@ fun TotalGastoCard(total: BigDecimal) {
                 style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+// Novo Composable: Card para exibir o comparativo com o mês anterior.
+@Composable
+fun ComparativoMesCard(variacao: Double, gastoProporcionalAnterior: BigDecimal) {
+    // Define a cor e o ícone com base se a variação é positiva (gastando mais) ou negativa (gastando menos).
+    val isPositive = variacao > 0
+    val cor = if (isPositive) MaterialTheme.colorScheme.error else Color(0xFF388E3C)
+    val icon = if (isPositive) Icons.Outlined.ArrowUpward else Icons.Outlined.ArrowDownward
+    val numberFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Coluna para o percentual de variação.
+            Column {
+                Text(text = "COMPARATIVO MÊS ANTERIOR", style = MaterialTheme.typography.titleMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = icon, contentDescription = "Variação", tint = cor)
+                    Text(
+                        text = "${String.format("%.2f", variacao.absoluteValue)}%",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = cor,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            // Coluna para a legenda com o valor proporcional do mês anterior.
+            Column(horizontalAlignment = Alignment.End) {
+                Text(text = "Mês anterior", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = numberFormat.format(gastoProporcionalAnterior),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
@@ -382,6 +441,9 @@ fun DashboardScreenPreview() {
                 totalGastoMes = BigDecimal("2450.80"),
                 categoriasMaisGastas = mockCategorias,
                 ultimosLancamentos = mockLancamentos,
+                // Valores de exemplo para o preview do novo card.
+                variacaoMes = -15.5,
+                gastoProporcionalMesAnterior = BigDecimal("2900.50"),
                 onEdit = {},
                 onDelete = {}
             )
