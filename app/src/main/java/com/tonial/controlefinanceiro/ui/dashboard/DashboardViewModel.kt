@@ -35,6 +35,13 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _gastoProporcionalMesAnterior = MutableStateFlow(BigDecimal.ZERO)
     val gastoProporcionalMesAnterior: StateFlow<BigDecimal> = _gastoProporcionalMesAnterior
 
+    // StateFlow para a projeção de gastos para o final do mês atual.
+    private val _projecaoGastoMes = MutableStateFlow(BigDecimal.ZERO)
+    val projecaoGastoMes: StateFlow<BigDecimal> = _projecaoGastoMes
+
+    // StateFlow para a média diária de gastos do mês atual.
+    private val _mediaDiariaAtual = MutableStateFlow(BigDecimal.ZERO)
+    val mediaDiariaAtual: StateFlow<BigDecimal> = _mediaDiariaAtual
 
     fun loadDashboardData() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -44,37 +51,42 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             _categoriasMaisGastas.value = dbHandler.getCategoriasMaisGastasMesAtual()
             _ultimosLancamentos.value = dbHandler.getUltimosLancamentos()
 
-            // Calcula o comparativo com o mês anterior.
-            // Esta lógica assume a existência de um método `getTotalGastoMesAnterior()` no `DatabaseHandler`.
+            // Define as datas para os cálculos.
             val hoje = LocalDate.now()
             val mesAnterior = hoje.minusMonths(1)
-
-            val totalGastoMesAnterior = dbHandler.getTotalGastoMesAnterior()
             val diasNoMesAnterior = mesAnterior.lengthOfMonth()
             val diaAtual = hoje.dayOfMonth
+            val diasNoMesAtual = hoje.lengthOfMonth()
 
+            // Calcula o comparativo com o mês anterior.
+            val totalGastoMesAnterior = dbHandler.getTotalGastoMesAnterior()
             if (diasNoMesAnterior > 0 && totalGastoMesAnterior > BigDecimal.ZERO) {
-                // Calcula a média de gasto diário do mês anterior.
                 val mediaDiariaMesAnterior = totalGastoMesAnterior.divide(BigDecimal(diasNoMesAnterior), 2, RoundingMode.HALF_UP)
-                // Calcula o gasto proporcional esperado para o período atual do mês.
                 val gastoProporcional = mediaDiariaMesAnterior.multiply(BigDecimal(diaAtual))
                 _gastoProporcionalMesAnterior.value = gastoProporcional
 
                 if (gastoProporcional > BigDecimal.ZERO) {
-                    // Calcula a variação percentual entre o gasto atual e o gasto proporcional.
                     val variacao = (totalGastoAtual.subtract(gastoProporcional))
                         .divide(gastoProporcional, 4, RoundingMode.HALF_UP)
                         .multiply(BigDecimal(100))
                     _variacaoMes.value = variacao.toDouble()
                 } else {
-                    // Se o gasto proporcional for zero, qualquer gasto atual é um aumento de 100%.
                     _variacaoMes.value = if (totalGastoAtual > BigDecimal.ZERO) 100.0 else 0.0
                 }
             } else {
-                // Se não houve gastos no mês anterior, não é possível comparar.
                 _gastoProporcionalMesAnterior.value = BigDecimal.ZERO
-                // Se não houve gasto proporcional, qualquer gasto atual é um aumento de 100%.
                 _variacaoMes.value = if (totalGastoAtual > BigDecimal.ZERO) 100.0 else 0.0
+            }
+
+            // Calcula a projeção de gastos para o final do mês atual.
+            if (diaAtual > 0 && totalGastoAtual > BigDecimal.ZERO) {
+                val mediaDiariaAtual = totalGastoAtual.divide(BigDecimal(diaAtual), 2, RoundingMode.HALF_UP)
+                _mediaDiariaAtual.value = mediaDiariaAtual
+                val projecao = mediaDiariaAtual.multiply(BigDecimal(diasNoMesAtual))
+                _projecaoGastoMes.value = projecao
+            } else {
+                _projecaoGastoMes.value = BigDecimal.ZERO
+                _mediaDiariaAtual.value = BigDecimal.ZERO
             }
         }
     }

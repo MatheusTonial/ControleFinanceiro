@@ -71,13 +71,14 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel(),
 ) {
-    // Coleta os estados do ViewModel para o total gasto, categorias e lançamentos.
+    // Coleta os estados do ViewModel.
     val totalGastoMes by viewModel.totalGastoMes.collectAsState()
     val categoriasMaisGastas by viewModel.categoriasMaisGastas.collectAsState()
     val ultimosLancamentos by viewModel.ultimosLancamentos.collectAsState()
-    // Assume que estes novos estados virão do ViewModel.
     val variacaoMes by viewModel.variacaoMes.collectAsState()
     val gastoProporcionalMesAnterior by viewModel.gastoProporcionalMesAnterior.collectAsState()
+    val projecaoGastoMes by viewModel.projecaoGastoMes.collectAsState()
+    val mediaDiariaAtual by viewModel.mediaDiariaAtual.collectAsState()
     val scope = rememberCoroutineScope()
 
     // Carrega os dados do dashboard ao iniciar a tela.
@@ -91,7 +92,6 @@ fun DashboardScreen(
             TopAppBar(
                 title = { Text("Dashboard") },
                 navigationIcon = {
-                    // Ícone para abrir o menu lateral.
                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
@@ -99,7 +99,6 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            // Botão flutuante para adicionar um novo lançamento.
             FloatingActionButton(
                 onClick = { onNavigateToLancamento(null) },
                 containerColor = MaterialTheme.colorScheme.primary
@@ -108,7 +107,6 @@ fun DashboardScreen(
             }
         }
     ) { paddingValues ->
-        // Exibe o conteúdo principal do dashboard, agora incluindo os novos dados.
         DashboardContent(
             modifier = Modifier.padding(paddingValues),
             totalGastoMes = totalGastoMes,
@@ -116,6 +114,8 @@ fun DashboardScreen(
             ultimosLancamentos = ultimosLancamentos,
             variacaoMes = variacaoMes,
             gastoProporcionalMesAnterior = gastoProporcionalMesAnterior,
+            projecaoGastoMes = projecaoGastoMes,
+            mediaDiariaAtual = mediaDiariaAtual,
             onEdit = { onNavigateToLancamento(it._id.toString()) },
             onDelete = { viewModel.deleteLancamento(it) }
         )
@@ -129,16 +129,15 @@ fun DashboardContent(
     totalGastoMes: BigDecimal,
     categoriasMaisGastas: List<CategoriaMaisGasta>,
     ultimosLancamentos: List<UltimoLancamento>,
-    // Recebe os novos dados para o card de comparativo.
     variacaoMes: Double,
     gastoProporcionalMesAnterior: BigDecimal,
+    projecaoGastoMes: BigDecimal,
+    mediaDiariaAtual: BigDecimal,
     onEdit: (UltimoLancamento) -> Unit,
     onDelete: (UltimoLancamento) -> Unit
 ) {
-    // Estado para armazenar o nome da categoria selecionada para filtro.
     var selectedCategoria by remember { mutableStateOf<String?>(null) }
 
-    // Filtra a lista de últimos lançamentos com base na categoria selecionada.
     val filteredLancamentos = if (selectedCategoria == null) {
         ultimosLancamentos
     } else {
@@ -152,18 +151,22 @@ fun DashboardContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         TotalGastoCard(totalGastoMes)
-        // Novo card de comparativo adicionado à tela.
-        ComparativoMesCard(variacao = variacaoMes, gastoProporcionalAnterior = gastoProporcionalMesAnterior)
-        // Passa o estado e o callback de clique para o carrossel de categorias.
+        // Linha para os cards de comparativo e projeção.
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                ComparativoMesCard(variacao = variacaoMes, gastoProporcionalAnterior = gastoProporcionalMesAnterior)
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                ProjecaoGastoCard(projecao = projecaoGastoMes, mediaDiaria = mediaDiariaAtual)
+            }
+        }
         CategoriasMaisGastasCarousel(
             categorias = categoriasMaisGastas,
             selectedCategoria = selectedCategoria,
             onCategoriaClick = { categoriaNome ->
-                // Alterna a seleção: seleciona se for diferente, deseleciona se for a mesma.
                 selectedCategoria = if (selectedCategoria == categoriaNome) null else categoriaNome
             }
         )
-        // Exibe a lista de lançamentos (filtrada ou não).
         UltimosLancamentosList(filteredLancamentos, onEdit, onDelete)
     }
 }
@@ -171,14 +174,9 @@ fun DashboardContent(
 // Card que exibe o total de gastos do mês.
 @Composable
 fun TotalGastoCard(total: BigDecimal) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
+    Card(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -192,48 +190,57 @@ fun TotalGastoCard(total: BigDecimal) {
     }
 }
 
-// Novo Composable: Card para exibir o comparativo com o mês anterior.
+// Card para exibir o comparativo com o mês anterior.
 @Composable
 fun ComparativoMesCard(variacao: Double, gastoProporcionalAnterior: BigDecimal) {
-    // Define a cor e o ícone com base se a variação é positiva (gastando mais) ou negativa (gastando menos).
     val isPositive = variacao > 0
     val cor = if (isPositive) MaterialTheme.colorScheme.error else Color(0xFF388E3C)
     val icon = if (isPositive) Icons.Outlined.ArrowUpward else Icons.Outlined.ArrowDownward
     val numberFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Coluna para o percentual de variação.
-            Column {
-                Text(text = "COMPARATIVO MÊS ANTERIOR", style = MaterialTheme.typography.titleMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = icon, contentDescription = "Variação", tint = cor)
-                    Text(
-                        text = "${String.format("%.2f", variacao.absoluteValue)}%",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = cor,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            // Coluna para a legenda com o valor proporcional do mês anterior.
-            Column(horizontalAlignment = Alignment.End) {
-                Text(text = "Mês anterior", style = MaterialTheme.typography.labelSmall)
+            Text(text = "VS. MÊS ANTERIOR", style = MaterialTheme.typography.titleSmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = icon, contentDescription = "Variação", tint = cor, modifier = Modifier.padding(end = 4.dp))
                 Text(
-                    text = numberFormat.format(gastoProporcionalAnterior),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    text = "${String.format("%.1f", variacao.absoluteValue)}%",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = cor,
+                    fontWeight = FontWeight.Bold
                 )
             }
+            Text(
+                text = numberFormat.format(gastoProporcionalAnterior),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
+        }
+    }
+}
+
+// Card para exibir a projeção de gastos do mês.
+@Composable
+fun ProjecaoGastoCard(projecao: BigDecimal, mediaDiaria: BigDecimal) {
+    val numberFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "PROJEÇÃO MÊS", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = numberFormat.format(projecao),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            Text(
+                text = "${numberFormat.format(mediaDiaria)} / dia",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
         }
     }
 }
@@ -252,7 +259,6 @@ fun CategoriasMaisGastasCarousel(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(categorias) { categoria ->
-                // Passa o callback de clique e se a categoria está selecionada para o Card.
                 CategoriaCard(
                     categoria = categoria,
                     isSelected = categoria.categoria == selectedCategoria,
@@ -270,31 +276,15 @@ fun CategoriaCard(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    // Adiciona uma borda se o card estiver selecionado.
-    val borderModifier = if (isSelected) {
-        Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CardDefaults.shape)
-    } else {
-        Modifier
-    }
+    val borderModifier = if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CardDefaults.shape) else Modifier
 
     Card(
-        modifier = Modifier
-            .clickable(onClick = onClick) // Adiciona o evento de clique.
-            .then(borderModifier) // Aplica a borda condicional.
+        modifier = Modifier.clickable(onClick = onClick).then(borderModifier)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Nome da categoria em negrito.
-            Text(
-                text = categoria.categoria,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
-            // Ajusta o plural de "lançamento".
+            Text(text = categoria.categoria, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
             val lancamentoText = if (categoria.quantidadeLancamentos == 1) "lançamento" else "lançamentos"
-            Text(
-                text = "${categoria.quantidadeLancamentos} $lancamentoText",
-                style = MaterialTheme.typography.bodySmall
-            )
+            Text(text = "${categoria.quantidadeLancamentos} $lancamentoText", style = MaterialTheme.typography.bodySmall)
             Text(
                 text = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(categoria.total),
                 style = MaterialTheme.typography.bodyLarge,
@@ -310,7 +300,7 @@ fun UltimosLancamentosList(
     lancamentos: List<UltimoLancamento>,
     onEdit: (UltimoLancamento) -> Unit,
     onDelete: (UltimoLancamento) -> Unit
-    ) {
+) {
     Column {
         Text(text = "Últimos Lançamentos", style = MaterialTheme.typography.titleMedium)
         LazyColumn(
@@ -341,14 +331,11 @@ fun LancamentoRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(lancamento.descricao, fontWeight = FontWeight.SemiBold)
-
-                // Formata a data para exibir apenas dia e mês.
                 val dataFormatada = try {
                     LocalDate.parse(lancamento.data).format(DateTimeFormatter.ofPattern("dd/MM"))
                 } catch (e: Exception) {
                     lancamento.data
                 }
-
                 Text("$dataFormatada • ${lancamento.categoria}", fontSize = 12.sp)
             }
 
@@ -358,40 +345,15 @@ fun LancamentoRow(
             val valorFormatado = numberFormat.format(lancamento.valor)
             val textoValor = if (isPerda) "- $valorFormatado" else "+ $valorFormatado"
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Exibe o valor do lançamento com a cor correspondente.
-                Text(
-                    text = textoValor,
-                    color = cor,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-
-                // Menu de opções (Editar/Excluir) para cada lançamento.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = textoValor, color = cor, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(end = 8.dp))
                 Box {
                     IconButton(onClick = { expanded = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Mais opções")
                     }
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Editar") },
-                            onClick = {
-                                onEdit(lancamento)
-                                expanded = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Excluir") },
-                            onClick = {
-                                onDelete(lancamento)
-                                expanded = false
-                            }
-                        )
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        DropdownMenuItem(text = { Text("Editar") }, onClick = { onEdit(lancamento); expanded = false })
+                        DropdownMenuItem(text = { Text("Excluir") }, onClick = { onDelete(lancamento); expanded = false })
                     }
                 }
             }
@@ -413,10 +375,10 @@ fun DashboardScreenPreview() {
             CategoriaMaisGasta("Saúde", BigDecimal("300.00"), 1)
         )
         val mockLancamentos = listOf(
-            UltimoLancamento(1,"Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),
-            UltimoLancamento(2,"Cinema", "Lazer", BigDecimal("80.00"), LocalDate.now().minusDays(1).toString(), TipoCategoria.Perda.name),
-            UltimoLancamento(3,"Salário", "Salário", BigDecimal("5000.00"), LocalDate.now().minusDays(2).toString(), TipoCategoria.Ganho.name),
-            UltimoLancamento(4,"Posto Shell", "Transporte", BigDecimal("150.00"), LocalDate.now().minusDays(3).toString(), TipoCategoria.Perda.name)
+            UltimoLancamento(1, "Compra no mercado", "Mercado", BigDecimal("150.20"), LocalDate.now().toString(), TipoCategoria.Perda.name),
+            UltimoLancamento(2, "Cinema", "Lazer", BigDecimal("80.00"), LocalDate.now().minusDays(1).toString(), TipoCategoria.Perda.name),
+            UltimoLancamento(3, "Salário", "Salário", BigDecimal("5000.00"), LocalDate.now().minusDays(2).toString(), TipoCategoria.Ganho.name),
+            UltimoLancamento(4, "Posto Shell", "Transporte", BigDecimal("150.00"), LocalDate.now().minusDays(3).toString(), TipoCategoria.Perda.name)
         )
 
         Scaffold(
@@ -424,14 +386,14 @@ fun DashboardScreenPreview() {
                 TopAppBar(
                     title = { Text("Dashboard") },
                     navigationIcon = {
-                        IconButton(onClick = { }) {
+                        IconButton(onClick = {}) {
                             Icon(Icons.Default.Menu, "Menu")
                         }
                     }
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { }) {
+                FloatingActionButton(onClick = {}) {
                     Icon(Icons.Default.Add, "Adicionar")
                 }
             }
@@ -441,9 +403,10 @@ fun DashboardScreenPreview() {
                 totalGastoMes = BigDecimal("2450.80"),
                 categoriasMaisGastas = mockCategorias,
                 ultimosLancamentos = mockLancamentos,
-                // Valores de exemplo para o preview do novo card.
                 variacaoMes = -15.5,
                 gastoProporcionalMesAnterior = BigDecimal("2900.50"),
+                projecaoGastoMes = BigDecimal("3100.90"),
+                mediaDiariaAtual = BigDecimal("103.36"),
                 onEdit = {},
                 onDelete = {}
             )
