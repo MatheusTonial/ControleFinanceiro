@@ -341,13 +341,13 @@ fun Filtros(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Coluna da esquerda: Totalizador do saldo.
+            // Coluna da esquerda: Totalizador do saldo. O peso foi ajustado para 1, dando menos espaço.
             Box(modifier = Modifier.weight(1f)) {
                 TotalizadorHistorico(historico = historico, modifier = Modifier.fillMaxWidth())
             }
 
-            // Coluna da direita: Menu dropdown para selecionar a categoria.
-            Box(modifier = Modifier.weight(1f)) {
+            // Coluna da direita: Menu dropdown para selecionar a categoria. O peso foi ajustado para 1.5, dando mais espaço.
+            Box(modifier = Modifier.weight(1.5f)) {
                 var expanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(
                     expanded = expanded,
