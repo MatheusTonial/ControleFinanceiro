@@ -320,7 +320,7 @@ fun CategoriaCard(
     }
 }
 
-// Lista vertical com os últimos lançamentos.
+// Lista vertical com os lançamentos do mes.
 @Composable
 fun UltimosLancamentosList(
     lancamentos: List<UltimoLancamento>,
@@ -328,7 +328,7 @@ fun UltimosLancamentosList(
     onDelete: (UltimoLancamento) -> Unit
 ) {
     Column {
-        Text(text = "Últimos Lançamentos", style = MaterialTheme.typography.titleMedium)
+        Text(text = "Lançamentos do mês", style = MaterialTheme.typography.titleMedium)
         LazyColumn(
             contentPadding = PaddingValues(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
