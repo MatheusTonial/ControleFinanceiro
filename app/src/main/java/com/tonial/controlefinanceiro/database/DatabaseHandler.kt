@@ -47,6 +47,7 @@ class DatabaseHandler private constructor(context: Context) :
         private const val KEY_DATA_CONTA = "data"
         private const val KEY_ID_RECORRENTE_CONTA = "idRecorrente"
         private const val KEY_CATEGORIA_CONTA = "categoria_id"
+        private const val KEY_TIPO_LANCAMENTO = "tipo_lancamento"
     }
 
     // Cria as tabelas do banco de dados na primeira execução.
@@ -86,8 +87,8 @@ class DatabaseHandler private constructor(context: Context) :
 
     // Executa migrações do banco de dados ao atualizar a versão.
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int ) {
-        if (oldVersion < 2) {
-            // Exemplo: db?.execSQL("ALTER TABLE $TABLE_CATEGORIAS ADD COLUMN nova_coluna TEXT;")
+        if (oldVersion < 3) {
+            db?.execSQL("ALTER TABLE $TABLE_CONTAS ADD COLUMN $KEY_TIPO_LANCAMENTO TEXT;")
         }
     }
 
