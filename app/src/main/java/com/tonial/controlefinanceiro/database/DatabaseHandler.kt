@@ -20,6 +20,10 @@ class DatabaseHandler private constructor(context: Context) :
         private const val DATABASE_NAME = "bdfile.sqlite"
         private const val DATABASE_VERSION = 3
 
+        // Constantes para o tipo de lançamento.
+        const val TIPO_LANCAMENTO_UNICO = "unico"
+        const val TIPO_LANCAMENTO_RECORRENTE = "recorrente"
+
         @Volatile
         private var INSTANCE: DatabaseHandler? = null
 
@@ -67,10 +71,8 @@ class DatabaseHandler private constructor(context: Context) :
         db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Internet', 'Perda', 4)")
         db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Lazer', 'Perda', 5)")
         db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Luz', 'Perda', 6)")
-        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Pessoal', 'Perda', 7)")
-        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Saude', 'Perda', 8)")
+        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Saúde', 'Perda', 8)")
         db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Transporte', 'Perda', 9)")
-        db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Investimentos', 'Perda', 10)")
         db?.execSQL("INSERT INTO $TABLE_CATEGORIAS ($KEY_DESCRICAO_CATEGORIA, $KEY_TIPO_CATEGORIA, $KEY_ORDEM_CATEGORIA) VALUES ('Outros', 'Perda', 11)")
 
 
@@ -81,6 +83,8 @@ class DatabaseHandler private constructor(context: Context) :
                 "$KEY_DATA_CONTA TEXT," +
                 "$KEY_ID_RECORRENTE_CONTA INTEGER," +
                 "$KEY_CATEGORIA_CONTA INTEGER," +
+                // Adiciona a nova coluna KEY_TIPO_LANCAMENTO na criação da tabela.
+                "$KEY_TIPO_LANCAMENTO TEXT," +
                 "FOREIGN KEY($KEY_CATEGORIA_CONTA) REFERENCES $TABLE_CATEGORIAS($KEY_ID_CATEGORIA))"
         db?.execSQL(createContaTable)
     }
