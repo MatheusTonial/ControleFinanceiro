@@ -35,17 +35,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.model.FluxoViewModel
 import com.tonial.controlefinanceiro.ui.theme.ControleFinanceiroTheme
+import java.math.BigDecimal
+import java.text.DecimalFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,9 +132,9 @@ fun TelaLancamentoContaContent(
             mutableStateOf(categorias.find { it._id == categoriaId }?.descricao ?: "")
         }
 
-        // Texto do valor, tratando o caso de ser zero
-        var valorText by remember(valor) {
-            mutableStateOf(if (valor == 0.0) "" else valor.toString())
+        // Armazena o valor monetário como uma string de dígitos (ex: "12345" para 123,45)
+        var valorDigits by remember(valor) {
+            mutableStateOf(if (valor == 0.0) "" else (valor * 100).toLong().toString())
         }
 
         // Diálogo para selecionar a data
@@ -178,24 +186,27 @@ fun TelaLancamentoContaContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Campo de texto para o valor
+                // Campo de texto para o valor com formatação de moeda
                 OutlinedTextField(
-                    value = valorText,
-                    onValueChange = { newText ->
-                        val sanitizedText = newText.replace(',', '.')
-                        if (sanitizedText.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
-                            valorText = sanitizedText
-                            val parsedValue = sanitizedText.toDoubleOrNull()
-                            if (parsedValue != null) {
-                                onValorChange(parsedValue)
-                            } else if (sanitizedText.isEmpty()) {
-                                onValorChange(0.0)
-                            }
+                    value = valorDigits,
+                    onValueChange = { newDigits ->
+                        // Permite apenas a entrada de dígitos
+                        val filteredDigits = newDigits.filter { it.isDigit() }
+                        // Limita o comprimento para evitar overflow
+                        if (filteredDigits.length <= 15) {
+                            valorDigits = filteredDigits
+                            // Converte a string de dígitos para Double (ex: "123" -> 1.23)
+                            val newValue = filteredDigits.toLongOrNull()?.div(100.0) ?: 0.0
+                            onValorChange(newValue)
                         }
                     },
-                    label = { Text("R$ 0,00") },
+                    label = { Text("Valor") },
                     modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    // Aplica a transformação visual para formatar como moeda
+                    visualTransformation = CurrencyVisualTransformation(),
+                    // Alinha o texto à direita
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.End)
                 )
                 // Campo de texto para a data (não editável diretamente)
                 OutlinedTextField(
@@ -256,6 +267,37 @@ fun TelaLancamentoContaContent(
                 Text("Salvar")
             }
         }
+    }
+}
+
+// Classe para a transformação visual da moeda
+private class CurrencyVisualTransformation : VisualTransformation {
+    // Formato de moeda para o Brasil (R$)
+    private val currencyFormat = DecimalFormat.getCurrencyInstance(Locale("pt", "BR"))
+
+    override fun filter(text: AnnotatedString): TransformedText {
+        // Pega a string de dígitos crus (ex: "12345")
+        val digits = text.text
+
+        // Converte para BigDecimal (ex: 123.45)
+        val value = digits.toBigDecimalOrNull()?.divide(BigDecimal(100)) ?: BigDecimal.ZERO
+
+        // Formata o valor como moeda (ex: "R$ 123,45")
+        val formattedText = currencyFormat.format(value)
+
+        // Mapeamento de offset para manter o cursor sempre no final.
+        // Essencial para a entrada de valores da direita para a esquerda.
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                return formattedText.length
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                return digits.length
+            }
+        }
+
+        return TransformedText(AnnotatedString(formattedText), offsetMapping)
     }
 }
 
