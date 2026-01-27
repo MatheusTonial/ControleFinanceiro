@@ -38,12 +38,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.model.FluxoViewModel
 import com.tonial.controlefinanceiro.ui.theme.ControleFinanceiroTheme
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -58,6 +58,7 @@ fun TelaLancamentoConta(
     lancamentoId: Long? = null,
     isOpenedFromWidget: Boolean = false
 ) {
+    // Efeito para carregar ou limpar a conta com base no ID do lançamento
     LaunchedEffect(lancamentoId) {
         if (lancamentoId != null) {
             viewModel.loadConta(lancamentoId)
@@ -66,10 +67,46 @@ fun TelaLancamentoConta(
         }
     }
 
+    // Componente de UI desacoplado que recebe estado e callbacks
+    TelaLancamentoContaContent(
+        modifier = modifier,
+        descricao = viewModel.descricao_conta,
+        onDescricaoChange = { viewModel.onDescricaoContaChange(it) },
+        valor = viewModel.valor_conta,
+        onValorChange = { viewModel.onValorContaChange(it) },
+        data = viewModel.data_conta,
+        onDataChange = { viewModel.onDataContaChange(it) },
+        categoriaId = viewModel.categoria_id_conta,
+        onCategoriaIdChange = { viewModel.onCategoriaIdContaChange(it) },
+        categorias = categorias,
+        onSaveClick = onSaveClick,
+        onBackClick = onBackClick,
+        isEditMode = lancamentoId != null
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TelaLancamentoContaContent(
+    modifier: Modifier = Modifier,
+    descricao: String,
+    onDescricaoChange: (String) -> Unit,
+    valor: Double,
+    onValorChange: (Double) -> Unit,
+    data: LocalDate,
+    onDataChange: (LocalDate) -> Unit,
+    categoriaId: Long?,
+    onCategoriaIdChange: (Long) -> Unit,
+    categorias: List<Categorias>,
+    onSaveClick: () -> Unit,
+    onBackClick: () -> Unit,
+    isEditMode: Boolean
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (lancamentoId == null) "Novo Lançamento" else "Editar Lançamento") },
+                title = { Text(if (!isEditMode) "Novo Lançamento" else "Editar Lançamento") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
@@ -81,16 +118,21 @@ fun TelaLancamentoConta(
         val focusRequester = remember { FocusRequester() }
         var showDatePicker by remember { mutableStateOf(false) }
         var expanded by remember { mutableStateOf(false) }
-        var selectedCategoryText by remember(viewModel.categoria_id_conta, categorias) {
-            mutableStateOf(categorias.find { it._id == viewModel.categoria_id_conta }?.descricao ?: "")
-        }
-        var valorText by remember(viewModel.valor_conta) {
-            mutableStateOf(if (viewModel.valor_conta == 0.0) "" else viewModel.valor_conta.toString())
+
+        // Texto da categoria selecionada
+        var selectedCategoryText by remember(categoriaId, categorias) {
+            mutableStateOf(categorias.find { it._id == categoriaId }?.descricao ?: "")
         }
 
+        // Texto do valor, tratando o caso de ser zero
+        var valorText by remember(valor) {
+            mutableStateOf(if (valor == 0.0) "" else valor.toString())
+        }
+
+        // Diálogo para selecionar a data
         if (showDatePicker) {
             val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = viewModel.data_conta.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                initialSelectedDateMillis = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
             )
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
@@ -99,7 +141,7 @@ fun TelaLancamentoConta(
                         onClick = {
                             datePickerState.selectedDateMillis?.let { millis ->
                                 val selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
-                                viewModel.onDataContaChange(selectedDate)
+                                onDataChange(selectedDate)
                             }
                             showDatePicker = false
                         }
@@ -115,12 +157,15 @@ fun TelaLancamentoConta(
             }
         }
 
-        Column(modifier = modifier
-            .padding(paddingValues)
-            .padding(8.dp)) {
+        Column(
+            modifier = modifier
+                .padding(paddingValues)
+                .padding(8.dp)
+        ) {
+            // Campo de texto para a descrição
             OutlinedTextField(
-                value = viewModel.descricao_conta,
-                onValueChange = { viewModel.onDescricaoContaChange(it) },
+                value = descricao,
+                onValueChange = onDescricaoChange,
                 label = { Text("Descrição") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,7 +177,8 @@ fun TelaLancamentoConta(
                     .padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
-            ){
+            ) {
+                // Campo de texto para o valor
                 OutlinedTextField(
                     value = valorText,
                     onValueChange = { newText ->
@@ -141,19 +187,19 @@ fun TelaLancamentoConta(
                             valorText = sanitizedText
                             val parsedValue = sanitizedText.toDoubleOrNull()
                             if (parsedValue != null) {
-                                viewModel.onValorContaChange(parsedValue)
+                                onValorChange(parsedValue)
                             } else if (sanitizedText.isEmpty()) {
-                                viewModel.onValorContaChange(0.0)
+                                onValorChange(0.0)
                             }
                         }
                     },
                     label = { Text("R$ 0,00") },
-                    modifier = Modifier
-                        .weight(1f),
+                    modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
+                // Campo de texto para a data (não editável diretamente)
                 OutlinedTextField(
-                    value = viewModel.data_conta.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                    value = data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
                     onValueChange = { },
                     enabled = false,
                     label = { Text("Data") },
@@ -167,6 +213,7 @@ fun TelaLancamentoConta(
                     )
                 )
             }
+            // Menu dropdown para selecionar a categoria
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },
@@ -177,9 +224,7 @@ fun TelaLancamentoConta(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Categoria") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                    },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
                         .menuAnchor()
                         .fillMaxWidth(),
@@ -188,12 +233,12 @@ fun TelaLancamentoConta(
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
-                ){
+                ) {
                     categorias.forEach { categoria ->
                         DropdownMenuItem(
                             text = { Text(categoria.descricao) },
                             onClick = {
-                                viewModel.onCategoriaIdContaChange(categoria._id)
+                                onCategoriaIdChange(categoria._id)
                                 selectedCategoryText = categoria.descricao
                                 expanded = false
                             }
@@ -201,6 +246,7 @@ fun TelaLancamentoConta(
                     }
                 }
             }
+            // Botão para salvar
             Button(
                 onClick = onSaveClick,
                 modifier = Modifier
@@ -216,17 +262,28 @@ fun TelaLancamentoConta(
 @Preview(showBackground = true)
 @Composable
 fun TelaLancamentoContaPreview() {
+    // Lista de categorias de exemplo
     val mockCategorias = listOf(
         Categorias(1, "Mercado", TipoCategoria.Perda, 0),
         Categorias(2, "Alimentação", TipoCategoria.Perda, 1),
-        Categorias(3, "Lazer",  TipoCategoria.Perda, 5)
+        Categorias(3, "Lazer", TipoCategoria.Perda, 5)
     )
+
     ControleFinanceiroTheme {
-        TelaLancamentoConta(
-            viewModel = viewModel(),
+        // Usa o componente de UI desacoplado com dados de exemplo
+        TelaLancamentoContaContent(
+            descricao = "Compra de teste",
+            onDescricaoChange = {},
+            valor = 123.45,
+            onValorChange = {},
+            data = LocalDate.now(),
+            onDataChange = {},
+            categoriaId = 1,
+            onCategoriaIdChange = {},
             categorias = mockCategorias,
             onSaveClick = {},
-            onBackClick = {}
+            onBackClick = {},
+            isEditMode = false
         )
     }
 }
