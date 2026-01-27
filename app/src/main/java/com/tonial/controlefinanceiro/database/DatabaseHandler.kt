@@ -17,7 +17,7 @@ class DatabaseHandler private constructor(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        private const val DATABASE_NAME = "bdfile.sqlite"
+        const val DATABASE_NAME = "bdfile.sqlite"
         private const val DATABASE_VERSION = 3
 
         // Constantes para o tipo de lançamento.

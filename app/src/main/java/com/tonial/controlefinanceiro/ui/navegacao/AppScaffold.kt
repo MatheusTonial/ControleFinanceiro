@@ -1,6 +1,11 @@
 package com.tonial.controlefinanceiro.ui.navegacao
 
+import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalDrawerSheet
@@ -15,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -35,6 +41,7 @@ import com.tonial.controlefinanceiro.ui.telas.TelaLancamentoConta
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.system.exitProcess
 
 object Routes {
     const val SPLASH = "splash"
@@ -59,6 +66,59 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     val isSplashScreen = currentRoute == Routes.SPLASH
+
+    val backupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        result.data?.data?.let { uri ->
+            scope.launch {
+                val message = try {
+                    withContext(Dispatchers.IO) {
+                        val dbFile = context.getDatabasePath(DatabaseHandler.DATABASE_NAME)
+                        context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                            dbFile.inputStream().use { inputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
+                        }
+                        "Backup realizado com sucesso!"
+                    }
+                } catch (e: Exception) {
+                    "Falha ao realizar o backup: ${e.message}"
+                }
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val restoreLauncher = rememberLauncherForActivityResult(OpenDocument()) { uri ->
+        uri?.let {
+            scope.launch {
+                val message = try {
+                    withContext(Dispatchers.IO) {
+                        banco.close()
+                        val dbFile = context.getDatabasePath(DatabaseHandler.DATABASE_NAME)
+                        context.contentResolver.openInputStream(it)?.use { inputStream ->
+                            dbFile.outputStream().use { outputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
+                        }
+                        "Backup restaurado com sucesso! O aplicativo será reiniciado."
+                    }
+                } catch (e: Exception) {
+                    "Falha ao restaurar o backup: ${e.message}"
+                }
+
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+
+                if (message.startsWith("Backup restaurado com sucesso")) {
+                    val packageManager = context.packageManager
+                    val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+                    val componentName = intent!!.component
+                    val mainIntent = Intent.makeRestartActivityTask(componentName)
+                    context.startActivity(mainIntent)
+                    exitProcess(0)
+                }
+            }
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -102,6 +162,28 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     selected = currentRoute == Routes.LISTA_CATEGORIA,
                     onClick = {
                         navController.navigate(Routes.LISTA_CATEGORIA) { launchSingleTop = true }
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                Spacer(Modifier.weight(1f))
+                NavigationDrawerItem(
+                    label = { Text(text = "Backup do Banco de Dados") },
+                    selected = false,
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "application/octet-stream"
+                            putExtra(Intent.EXTRA_TITLE, "backup.sqlite")
+                        }
+                        backupLauncher.launch(intent)
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text(text = "Restaurar Backup") },
+                    selected = false,
+                    onClick = {
+                        restoreLauncher.launch(arrayOf("application/octet-stream"))
                         scope.launch { drawerState.close() }
                     }
                 )
