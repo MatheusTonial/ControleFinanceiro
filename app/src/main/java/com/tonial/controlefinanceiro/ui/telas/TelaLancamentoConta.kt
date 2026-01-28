@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
@@ -87,6 +88,8 @@ fun TelaLancamentoConta(
         categoriaId = viewModel.categoria_id_conta,
         onCategoriaIdChange = { viewModel.onCategoriaIdContaChange(it) },
         categorias = categorias,
+        lancamentoUnico = viewModel.lancamentoUnico_conta,
+        onLancamentoUnicoChange = { viewModel.onLancamentoUnicoContaChange(it) },
         onSaveClick = onSaveClick,
         onBackClick = onBackClick,
         isEditMode = lancamentoId != null
@@ -107,6 +110,8 @@ fun TelaLancamentoContaContent(
     categoriaId: Long?,
     onCategoriaIdChange: (Long) -> Unit,
     categorias: List<Categorias>,
+    lancamentoUnico: Boolean,
+    onLancamentoUnicoChange: (Boolean) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
     isEditMode: Boolean
@@ -257,6 +262,21 @@ fun TelaLancamentoContaContent(
                     }
                 }
             }
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Lançamento único")
+                Switch(
+                    checked = lancamentoUnico,
+                    onCheckedChange = onLancamentoUnicoChange
+                )
+            }
+
             // Botão para salvar
             Button(
                 onClick = onSaveClick,
@@ -323,6 +343,8 @@ fun TelaLancamentoContaPreview() {
             categoriaId = 1,
             onCategoriaIdChange = {},
             categorias = mockCategorias,
+            lancamentoUnico = false,
+            onLancamentoUnicoChange = {},
             onSaveClick = {},
             onBackClick = {},
             isEditMode = false

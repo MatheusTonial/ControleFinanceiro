@@ -81,6 +81,7 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
     var data_conta by mutableStateOf(LocalDate.now())
     var idRecorrente_conta by mutableStateOf(0)
     var categoria_id_conta by mutableStateOf<Long?>(null)
+    var lancamentoUnico_conta by mutableStateOf(false)
     var mensagemErro by mutableStateOf<String?>(null)
 
     fun loadConta(id: Long) {
@@ -92,6 +93,7 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
                 data_conta = conta.data
                 idRecorrente_conta = conta.idRecorrente
                 categoria_id_conta = conta.categoriaId
+                lancamentoUnico_conta = conta.tipo_lancamento == DatabaseHandler.TIPO_LANCAMENTO_UNICO
             }
         }
     }
@@ -115,6 +117,10 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
     fun onCategoriaIdContaChange(newValue: Long?) {
         categoria_id_conta = newValue
     }
+    
+    fun onLancamentoUnicoContaChange(newValue: Boolean) {
+        lancamentoUnico_conta = newValue
+    }
 
     fun limpaConta(){
         contaId = null
@@ -123,6 +129,7 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
         data_conta = LocalDate.now()
         idRecorrente_conta = 0
         categoria_id_conta = null
+        lancamentoUnico_conta = false
         mensagemErro = null
     }
 
@@ -133,13 +140,15 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch(Dispatchers.IO) {
+            val tipoLancamento = if (lancamentoUnico_conta) DatabaseHandler.TIPO_LANCAMENTO_UNICO else null
             val conta = Contas(
                 _id = contaId ?: 0,
                 descricao = descricao_conta,
                 valor = valor_conta,
                 data = data_conta,
                 idRecorrente = idRecorrente_conta,
-                categoriaId = categoria_id_conta!!
+                categoriaId = categoria_id_conta!!,
+                tipo_lancamento = tipoLancamento
             )
             if (contaId == null) {
                 dbHandler.addConta(conta)

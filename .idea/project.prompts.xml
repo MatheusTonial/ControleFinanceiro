@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PromptTemplates">
+    <option name="builtInPromptOverrides">
+      <list>
+        <BuiltInPromptOverride>
+          <option name="groupId" value="rules" />
+          <option name="promptId" value="project" />
+          <option name="text" value="Siga esses pontos rigorosamente:&#10;&#10;- sempre comente explicando brevemente o que esta sendo feito&#10;- nao altere estrurura de banco que ja existia anteriormente sem necessidade&#10;- nao mudar nome de tabelas e campos&#10;- ao atualizar versao, nunca usar drop table e sim alter table para que nao perca dados existentes &#10;- nao realize alterações de codigo que não sejam necessarias para o que foi pedido&#10;- nao troque &quot; por ' sem necessidade&#10;- nao mude as &quot; nos query da DatabaseHandler&#10;- nao mude CATEGORIAS para CATEGORias&#10;NEVER remove or modify comments you did not write yourself or that are unrelated to the code you are modifying, unless the comment is no longer accurate due to a change you're proposing.&#10;&#10;NEVER downgrade libraries unless a compatibility issue requires it.&#10;&#10;NEVER embed version numbers in build.gradle - use libs.versions.toml.&#10;&#10;NEVER automatically submit another code change in response to a change being rejected. Always ask why the change was rejected before continuing. Use this feedback to create a revised code suggestion.&#10;&#10;NEVER submit a code change without explaining it, unless you’ve been instructed not to.&#10;&#10;NEVER rename a test unless its purpose has fundamentally changed.&#10;&#10;Justify every change to libs.versions.toml or build.gradle individually.&#10;&#10;Do not stop suggesting changes until the build is free of errors. This directive does not apply to warnings." />
+        </BuiltInPromptOverride>
+      </list>
+    </option>
+  </component>
+</project>

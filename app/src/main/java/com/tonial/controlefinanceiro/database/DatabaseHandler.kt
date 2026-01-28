@@ -18,7 +18,8 @@ class DatabaseHandler private constructor(context: Context) :
 
     companion object {
         const val DATABASE_NAME = "bdfile.sqlite"
-        private const val DATABASE_VERSION = 3
+        // A versão do banco de dados foi incrementada para 4 para forçar a execução do onUpgrade.
+        private const val DATABASE_VERSION = 4
 
         // Constantes para o tipo de lançamento.
         const val TIPO_LANCAMENTO_UNICO = "unico"
@@ -93,6 +94,17 @@ class DatabaseHandler private constructor(context: Context) :
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int ) {
         if (oldVersion < 3) {
             db?.execSQL("ALTER TABLE $TABLE_CONTAS ADD COLUMN $KEY_TIPO_LANCAMENTO TEXT;")
+        }
+        if (oldVersion < 4) {
+            // Verifica se a coluna tipo_lancamento existe antes de tentar adicioná-la para evitar erros.
+            var columnExists = false
+            val cursor = db?.rawQuery("SELECT * FROM $TABLE_CONTAS LIMIT 0", null)
+            cursor?.use {
+                columnExists = it.getColumnIndex(KEY_TIPO_LANCAMENTO) != -1
+            }
+            if (cursor != null && !columnExists) {
+                db.execSQL("ALTER TABLE $TABLE_CONTAS ADD COLUMN $KEY_TIPO_LANCAMENTO TEXT;")
+            }
         }
     }
 
@@ -171,6 +183,7 @@ class DatabaseHandler private constructor(context: Context) :
             put(KEY_DATA_CONTA, conta.data.toString())
             put(KEY_ID_RECORRENTE_CONTA, conta.idRecorrente)
             put(KEY_CATEGORIA_CONTA, conta.categoriaId)
+            put(KEY_TIPO_LANCAMENTO, conta.tipo_lancamento)
         }
         return db.insert(TABLE_CONTAS, null, values)
     }
@@ -184,6 +197,7 @@ class DatabaseHandler private constructor(context: Context) :
             put(KEY_DATA_CONTA, conta.data.toString())
             put(KEY_ID_RECORRENTE_CONTA, conta.idRecorrente)
             put(KEY_CATEGORIA_CONTA, conta.categoriaId)
+            put(KEY_TIPO_LANCAMENTO, conta.tipo_lancamento)
         }
         return db.update(TABLE_CONTAS, values, "$KEY_ID_CONTA = ?", arrayOf(conta._id.toString()))
     }
@@ -200,13 +214,17 @@ class DatabaseHandler private constructor(context: Context) :
         var conta: Contas? = null
         db.rawQuery("SELECT * FROM $TABLE_CONTAS WHERE $KEY_ID_CONTA = ?", arrayOf(id.toString())).use { cursor ->
             if (cursor.moveToFirst()) {
+                val tipoLancamentoIndex = cursor.getColumnIndex(KEY_TIPO_LANCAMENTO)
+                val tipoLancamento = if (tipoLancamentoIndex != -1 && !cursor.isNull(tipoLancamentoIndex)) cursor.getString(tipoLancamentoIndex) else null
+                
                 conta = Contas(
                     _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CONTA)),
                     descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CONTA)),
                     valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA)),
                     data = LocalDate.parse(cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))),
                     idRecorrente = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ID_RECORRENTE_CONTA)),
-                    categoriaId = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CATEGORIA_CONTA))
+                    categoriaId = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CATEGORIA_CONTA)),
+                    tipo_lancamento = tipoLancamento
                 )
             }
         }
