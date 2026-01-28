@@ -18,7 +18,7 @@ class DatabaseHandler private constructor(context: Context) :
 
     companion object {
         const val DATABASE_NAME = "bdfile.sqlite"
-        // A versão do banco de dados foi incrementada para 4 para forçar a execução do onUpgrade.
+        // A versão do banco de dados foi incrementada para 4 para forçar a execução do onUpgrade e garantir a consistência do schema.
         private const val DATABASE_VERSION = 4
 
         // Constantes para o tipo de lançamento.
@@ -90,11 +90,28 @@ class DatabaseHandler private constructor(context: Context) :
         db?.execSQL(createContaTable)
     }
 
+    // O onOpen é chamado toda vez que o banco de dados é aberto.
+    // Usamos este método para garantir que o schema do banco de dados esteja sempre correto, mesmo após restaurar um backup antigo.
+    override fun onOpen(db: SQLiteDatabase?) {
+        super.onOpen(db)
+        db?.let {
+            // Verifica se a coluna tipo_lancamento existe na tabela contas.
+            var columnExists = false
+            val cursor = it.rawQuery("SELECT * FROM $TABLE_CONTAS LIMIT 0", null)
+            cursor?.use { c ->
+                columnExists = c.getColumnIndex(KEY_TIPO_LANCAMENTO) != -1
+            }
+
+            // Se a coluna não existir, ela é adicionada.
+            if (!columnExists) {
+                it.execSQL("ALTER TABLE $TABLE_CONTAS ADD COLUMN $KEY_TIPO_LANCAMENTO TEXT;")
+            }
+        }
+    }
+
     // Executa migrações do banco de dados ao atualizar a versão.
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int ) {
-        if (oldVersion < 3) {
-            db?.execSQL("ALTER TABLE $TABLE_CONTAS ADD COLUMN $KEY_TIPO_LANCAMENTO TEXT;")
-        }
+        // Para versões anteriores a 4, garante que a coluna tipo_lancamento seja adicionada de forma segura.
         if (oldVersion < 4) {
             // Verifica se a coluna tipo_lancamento existe antes de tentar adicioná-la para evitar erros.
             var columnExists = false
@@ -102,8 +119,8 @@ class DatabaseHandler private constructor(context: Context) :
             cursor?.use {
                 columnExists = it.getColumnIndex(KEY_TIPO_LANCAMENTO) != -1
             }
-            if (cursor != null && !columnExists) {
-                db.execSQL("ALTER TABLE $TABLE_CONTAS ADD COLUMN $KEY_TIPO_LANCAMENTO TEXT;")
+            if (!columnExists) {
+                db?.execSQL("ALTER TABLE $TABLE_CONTAS ADD COLUMN $KEY_TIPO_LANCAMENTO TEXT;")
             }
         }
     }
