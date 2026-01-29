@@ -37,6 +37,7 @@ import com.tonial.controlefinanceiro.ui.dashboard.DashboardScreen
 import com.tonial.controlefinanceiro.ui.historico.HistoricoScreen
 import com.tonial.controlefinanceiro.ui.splash.SplashScreen
 import com.tonial.controlefinanceiro.ui.telas.ListarCategoriasScreen
+import com.tonial.controlefinanceiro.ui.telas.ListarContasRecorrentesScreen
 import com.tonial.controlefinanceiro.ui.telas.TelaCategoria
 import com.tonial.controlefinanceiro.ui.telas.TelaContaRecorrente
 import com.tonial.controlefinanceiro.ui.telas.TelaLancamentoConta
@@ -53,6 +54,7 @@ object Routes {
     const val HISTORICO = "historico"
     const val LISTA_CATEGORIA = "lista_categoria"
     const val CONTA_RECORRENTE = "conta_recorrente"
+    const val LISTA_CONTA_RECORRENTE = "lista_conta_recorrente"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -174,6 +176,14 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     selected = currentRoute == Routes.CONTA_RECORRENTE,
                     onClick = {
                         navController.navigate(Routes.CONTA_RECORRENTE) { launchSingleTop = true }
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text(text = "🕐 Lista de Contas Recorrentes") },
+                    selected = currentRoute == Routes.LISTA_CONTA_RECORRENTE,
+                    onClick = {
+                        navController.navigate(Routes.LISTA_CONTA_RECORRENTE) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
                     }
                 )
@@ -304,6 +314,15 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     },
                     onBackClick = { navController.popBackStack() },
                     lancamentoId = lancamentoId?.toLongOrNull()
+                )
+            }
+            composable(Routes.LISTA_CONTA_RECORRENTE) {
+                ListarContasRecorrentesScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onNavigateToContaRecorrente = {
+                        val route = if (it != null) "${Routes.CONTA_RECORRENTE}?lancamentoId=$it" else Routes.CONTA_RECORRENTE
+                        navController.navigate(route)
+                    }
                 )
             }
             composable(

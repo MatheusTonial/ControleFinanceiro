@@ -240,6 +240,32 @@ class DatabaseHandler private constructor(context: Context) :
         return categoriasList
     }
 
+    // Retorna todas os gastos recorrentes, ordenados pela data.
+    fun getAllGastosRecorrentes(): List<Contas> {
+        val contasList = ArrayList<Contas>()
+        val selectQuery = "SELECT * FROM $TABLE_GASTOS_RECORRENTES ORDER BY $KEY_DATA_CONTA ASC"
+        val db = this.readableDatabase
+        db.rawQuery(selectQuery, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                do {
+                    val tipoLancamentoIndex = cursor.getColumnIndex(KEY_TIPO_LANCAMENTO)
+                    val tipoLancamento = if (tipoLancamentoIndex != -1 && !cursor.isNull(tipoLancamentoIndex)) cursor.getString(tipoLancamentoIndex) else null
+
+                    val conta = Contas(
+                        _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CONTA)),
+                        descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CONTA)),
+                        valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA)),
+                        data = LocalDate.parse(cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))),
+                        categoriaId = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CATEGORIA_CONTA)),
+                        tipo_lancamento = tipoLancamento
+                    )
+                    contasList.add(conta)
+                } while (cursor.moveToNext())
+            }
+        }
+        return contasList
+    }
+
     // Adiciona uma nova conta (lançamento) ao banco de dados.
     fun addConta(conta: Contas): Long {
         val db = this.writableDatabase
@@ -296,6 +322,12 @@ class DatabaseHandler private constructor(context: Context) :
     fun deleteLancamentoById(id: Long) {
         val db = this.writableDatabase
         db.delete(TABLE_CONTAS, "$KEY_ID_CONTA = ?", arrayOf(id.toString()))
+    }
+
+    // Exclui um lançamento da tabela de gastos recorrentes pelo seu ID.
+    fun deleteGastoRecorrenteById(id: Long) {
+        val db = this.writableDatabase
+        db.delete(TABLE_GASTOS_RECORRENTES, "$KEY_ID_CONTA = ?", arrayOf(id.toString()))
     }
     
     // Busca uma conta pelo seu ID.
