@@ -79,7 +79,6 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
     var descricao_conta by mutableStateOf("")
     var valor_conta by mutableStateOf(0.0)
     var data_conta by mutableStateOf(LocalDate.now())
-    var idRecorrente_conta by mutableStateOf(0)
     var categoria_id_conta by mutableStateOf<Long?>(null)
     var lancamentoUnico_conta by mutableStateOf(false)
     var mensagemErro by mutableStateOf<String?>(null)
@@ -91,7 +90,6 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
                 descricao_conta = conta.descricao
                 valor_conta = conta.valor
                 data_conta = conta.data
-                idRecorrente_conta = conta.idRecorrente
                 categoria_id_conta = conta.categoriaId
                 lancamentoUnico_conta = conta.tipo_lancamento == DatabaseHandler.TIPO_LANCAMENTO_UNICO
             }
@@ -110,10 +108,6 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
         data_conta = newValue
     }
 
-    fun onIdRecorrenteContaChange(newValue: Int) {
-        idRecorrente_conta = newValue
-    }
-
     fun onCategoriaIdContaChange(newValue: Long?) {
         categoria_id_conta = newValue
     }
@@ -127,7 +121,6 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
         descricao_conta = ""
         valor_conta = 0.0
         data_conta = LocalDate.now()
-        idRecorrente_conta = 0
         categoria_id_conta = null
         lancamentoUnico_conta = false
         mensagemErro = null
@@ -146,7 +139,6 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
                 descricao = descricao_conta,
                 valor = valor_conta,
                 data = data_conta,
-                idRecorrente = idRecorrente_conta,
                 categoriaId = categoria_id_conta!!,
                 tipo_lancamento = tipoLancamento
             )

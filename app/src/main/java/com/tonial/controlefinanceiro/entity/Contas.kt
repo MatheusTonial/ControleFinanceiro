@@ -7,7 +7,6 @@ data class Contas (
     val descricao: String,
     val valor: Double,
     val data: LocalDate,
-    val idRecorrente: Int,
     val categoriaId: Long,
     val tipo_lancamento: String? = null
 )

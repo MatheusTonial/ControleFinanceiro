@@ -18,8 +18,9 @@ class DatabaseHandler private constructor(context: Context) :
 
     companion object {
         const val DATABASE_NAME = "bdfile.sqlite"
-        // A versão do banco de dados foi incrementada para 4 para forçar a execução do onUpgrade e garantir a consistência do schema.
-        private const val DATABASE_VERSION = 4
+
+        // A versão do banco de dados foi incrementada para 5 para forçar a execução do onUpgrade e garantir a consistência do schema.
+        private const val DATABASE_VERSION = 5
 
         // Constantes para o tipo de lançamento.
         const val TIPO_LANCAMENTO_UNICO = "unico"
@@ -50,7 +51,6 @@ class DatabaseHandler private constructor(context: Context) :
         private const val KEY_DESCRICAO_CONTA = "descricao"
         private const val KEY_VALOR_CONTA = "valor"
         private const val KEY_DATA_CONTA = "data"
-        private const val KEY_ID_RECORRENTE_CONTA = "idRecorrente"
         private const val KEY_CATEGORIA_CONTA = "categoria_id"
         private const val KEY_TIPO_LANCAMENTO = "tipo_lancamento"
     }
@@ -82,7 +82,6 @@ class DatabaseHandler private constructor(context: Context) :
                 "$KEY_DESCRICAO_CONTA TEXT," +
                 "$KEY_VALOR_CONTA REAL," +
                 "$KEY_DATA_CONTA TEXT," +
-                "$KEY_ID_RECORRENTE_CONTA INTEGER," +
                 "$KEY_CATEGORIA_CONTA INTEGER," +
                 // Adiciona a nova coluna KEY_TIPO_LANCAMENTO na criação da tabela.
                 "$KEY_TIPO_LANCAMENTO TEXT," +
@@ -122,6 +121,29 @@ class DatabaseHandler private constructor(context: Context) :
             if (!columnExists) {
                 db?.execSQL("ALTER TABLE $TABLE_CONTAS ADD COLUMN $KEY_TIPO_LANCAMENTO TEXT;")
             }
+        }
+        if (oldVersion < 5) {
+            // Para remover a coluna idRecorrente, fazemos o seguinte:
+            // 1. Renomeia a tabela antiga.
+            db?.execSQL("ALTER TABLE $TABLE_CONTAS RENAME TO ${TABLE_CONTAS}_old")
+
+            // 2. Cria a nova tabela sem idRecorrente.
+            val createContaTable = "CREATE TABLE $TABLE_CONTAS(" +
+                    "$KEY_ID_CONTA INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "$KEY_DESCRICAO_CONTA TEXT," +
+                    "$KEY_VALOR_CONTA REAL," +
+                    "$KEY_DATA_CONTA TEXT," +
+                    "$KEY_CATEGORIA_CONTA INTEGER," +
+                    "$KEY_TIPO_LANCAMENTO TEXT," +
+                    "FOREIGN KEY($KEY_CATEGORIA_CONTA) REFERENCES $TABLE_CATEGORIAS($KEY_ID_CATEGORIA))"
+            db?.execSQL(createContaTable)
+
+            // 3. Copia os dados da tabela antiga para a nova.
+            db?.execSQL("INSERT INTO $TABLE_CONTAS ($KEY_ID_CONTA, $KEY_DESCRICAO_CONTA, $KEY_VALOR_CONTA, $KEY_DATA_CONTA, $KEY_CATEGORIA_CONTA, $KEY_TIPO_LANCAMENTO) " +
+                    "SELECT $KEY_ID_CONTA, $KEY_DESCRICAO_CONTA, $KEY_VALOR_CONTA, $KEY_DATA_CONTA, $KEY_CATEGORIA_CONTA, $KEY_TIPO_LANCAMENTO FROM ${TABLE_CONTAS}_old")
+
+            // 4. Exclui a tabela antiga.
+            db?.execSQL("DROP TABLE ${TABLE_CONTAS}_old")
         }
     }
 
@@ -198,7 +220,6 @@ class DatabaseHandler private constructor(context: Context) :
             put(KEY_DESCRICAO_CONTA, conta.descricao)
             put(KEY_VALOR_CONTA, conta.valor)
             put(KEY_DATA_CONTA, conta.data.toString())
-            put(KEY_ID_RECORRENTE_CONTA, conta.idRecorrente)
             put(KEY_CATEGORIA_CONTA, conta.categoriaId)
             put(KEY_TIPO_LANCAMENTO, conta.tipo_lancamento)
         }
@@ -212,7 +233,6 @@ class DatabaseHandler private constructor(context: Context) :
             put(KEY_DESCRICAO_CONTA, conta.descricao)
             put(KEY_VALOR_CONTA, conta.valor)
             put(KEY_DATA_CONTA, conta.data.toString())
-            put(KEY_ID_RECORRENTE_CONTA, conta.idRecorrente)
             put(KEY_CATEGORIA_CONTA, conta.categoriaId)
             put(KEY_TIPO_LANCAMENTO, conta.tipo_lancamento)
         }
@@ -239,7 +259,6 @@ class DatabaseHandler private constructor(context: Context) :
                     descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CONTA)),
                     valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA)),
                     data = LocalDate.parse(cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))),
-                    idRecorrente = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ID_RECORRENTE_CONTA)),
                     categoriaId = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CATEGORIA_CONTA)),
                     tipo_lancamento = tipoLancamento
                 )
@@ -276,7 +295,7 @@ class DatabaseHandler private constructor(context: Context) :
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
             AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now', '-1 month')
-            AND (T2.$KEY_TIPO_LANCAMENTO != '${TIPO_LANCAMENTO_UNICO}' OR T2.$KEY_TIPO_LANCAMENTO IS NULL)
+            AND (T2.$KEY_TIPO_LANCAMENTO != '$TIPO_LANCAMENTO_UNICO' OR T2.$KEY_TIPO_LANCAMENTO IS NULL)
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
@@ -299,7 +318,7 @@ class DatabaseHandler private constructor(context: Context) :
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
             AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
-            AND T2.$KEY_TIPO_LANCAMENTO == '${TIPO_LANCAMENTO_RECORRENTE}'
+            AND T2.$KEY_TIPO_LANCAMENTO == '$TIPO_LANCAMENTO_RECORRENTE'
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
@@ -319,7 +338,7 @@ class DatabaseHandler private constructor(context: Context) :
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
             AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
-            AND T2.$KEY_TIPO_LANCAMENTO == '${TIPO_LANCAMENTO_UNICO}'
+            AND T2.$KEY_TIPO_LANCAMENTO == '$TIPO_LANCAMENTO_UNICO'
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
@@ -340,7 +359,7 @@ class DatabaseHandler private constructor(context: Context) :
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
             AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
           AND COALESCE(T2.$KEY_TIPO_LANCAMENTO, 'SEM_TIPO')
-          NOT IN ('${TIPO_LANCAMENTO_UNICO}', '${TIPO_LANCAMENTO_RECORRENTE}')
+          NOT IN ('$TIPO_LANCAMENTO_UNICO', '$TIPO_LANCAMENTO_RECORRENTE')
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
