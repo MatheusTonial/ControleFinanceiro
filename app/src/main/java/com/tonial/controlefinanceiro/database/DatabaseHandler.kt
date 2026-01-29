@@ -19,8 +19,8 @@ class DatabaseHandler private constructor(context: Context) :
     companion object {
         const val DATABASE_NAME = "bdfile.sqlite"
 
-        // A versão do banco de dados foi incrementada para 5 para forçar a execução do onUpgrade e garantir a consistência do schema.
-        private const val DATABASE_VERSION = 5
+        // A versão do banco de dados foi incrementada para 6 para adicionar a tabela de gastos recorrentes.
+        private const val DATABASE_VERSION = 6
 
         // Constantes para o tipo de lançamento.
         const val TIPO_LANCAMENTO_UNICO = "unico"
@@ -53,6 +53,9 @@ class DatabaseHandler private constructor(context: Context) :
         private const val KEY_DATA_CONTA = "data"
         private const val KEY_CATEGORIA_CONTA = "categoria_id"
         private const val KEY_TIPO_LANCAMENTO = "tipo_lancamento"
+        
+        // Tabela de gastos recorrentes
+        private const val TABLE_GASTOS_RECORRENTES = "gastos_recorrentes"
     }
 
     // Cria as tabelas do banco de dados na primeira execução.
@@ -87,6 +90,17 @@ class DatabaseHandler private constructor(context: Context) :
                 "$KEY_TIPO_LANCAMENTO TEXT," +
                 "FOREIGN KEY($KEY_CATEGORIA_CONTA) REFERENCES $TABLE_CATEGORIAS($KEY_ID_CATEGORIA))"
         db?.execSQL(createContaTable)
+        
+        // Cria a tabela de gastos recorrentes.
+        val createGastosRecorrentesTable = "CREATE TABLE $TABLE_GASTOS_RECORRENTES(" +
+                "$KEY_ID_CONTA INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "$KEY_DESCRICAO_CONTA TEXT," +
+                "$KEY_VALOR_CONTA REAL," +
+                "$KEY_DATA_CONTA TEXT," +
+                "$KEY_CATEGORIA_CONTA INTEGER," +
+                "$KEY_TIPO_LANCAMENTO TEXT," +
+                "FOREIGN KEY($KEY_CATEGORIA_CONTA) REFERENCES $TABLE_CATEGORIAS($KEY_ID_CATEGORIA))"
+        db?.execSQL(createGastosRecorrentesTable)
     }
 
     // O onOpen é chamado toda vez que o banco de dados é aberto.
@@ -144,6 +158,19 @@ class DatabaseHandler private constructor(context: Context) :
 
             // 4. Exclui a tabela antiga.
             db?.execSQL("DROP TABLE ${TABLE_CONTAS}_old")
+        }
+        
+        // Adiciona a tabela de gastos recorrentes se a versão for anterior a 6.
+        if (oldVersion < 6) {
+            val createGastosRecorrentesTable = "CREATE TABLE $TABLE_GASTOS_RECORRENTES(" +
+                "$KEY_ID_CONTA INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "$KEY_DESCRICAO_CONTA TEXT," +
+                "$KEY_VALOR_CONTA REAL," +
+                "$KEY_DATA_CONTA TEXT," +
+                "$KEY_CATEGORIA_CONTA INTEGER," +
+                "$KEY_TIPO_LANCAMENTO TEXT," +
+                "FOREIGN KEY($KEY_CATEGORIA_CONTA) REFERENCES $TABLE_CATEGORIAS($KEY_ID_CATEGORIA))"
+            db?.execSQL(createGastosRecorrentesTable)
         }
     }
 
@@ -226,6 +253,19 @@ class DatabaseHandler private constructor(context: Context) :
         return db.insert(TABLE_CONTAS, null, values)
     }
 
+    // Adiciona uma nova conta (lançamento) na tabela de gastos recorrentes.
+    fun addGastoRecorrente(conta: Contas): Long {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(KEY_DESCRICAO_CONTA, conta.descricao)
+            put(KEY_VALOR_CONTA, conta.valor)
+            put(KEY_DATA_CONTA, conta.data.toString())
+            put(KEY_CATEGORIA_CONTA, conta.categoriaId)
+            put(KEY_TIPO_LANCAMENTO, conta.tipo_lancamento)
+        }
+        return db.insert(TABLE_GASTOS_RECORRENTES, null, values)
+    }
+
     // Atualiza uma conta existente no banco de dados.
     fun updateConta(conta: Contas): Int {
         val db = this.writableDatabase
@@ -237,6 +277,19 @@ class DatabaseHandler private constructor(context: Context) :
             put(KEY_TIPO_LANCAMENTO, conta.tipo_lancamento)
         }
         return db.update(TABLE_CONTAS, values, "$KEY_ID_CONTA = ?", arrayOf(conta._id.toString()))
+    }
+
+    // Atualiza uma conta existente na tabela de gastos recorrentes.
+    fun updateGastoRecorrente(conta: Contas): Int {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(KEY_DESCRICAO_CONTA, conta.descricao)
+            put(KEY_VALOR_CONTA, conta.valor)
+            put(KEY_DATA_CONTA, conta.data.toString())
+            put(KEY_CATEGORIA_CONTA, conta.categoriaId)
+            put(KEY_TIPO_LANCAMENTO, conta.tipo_lancamento)
+        }
+        return db.update(TABLE_GASTOS_RECORRENTES, values, "$KEY_ID_CONTA = ?", arrayOf(conta._id.toString()))
     }
 
     // Exclui um lançamento do banco de dados pelo seu ID.
@@ -254,6 +307,28 @@ class DatabaseHandler private constructor(context: Context) :
                 val tipoLancamentoIndex = cursor.getColumnIndex(KEY_TIPO_LANCAMENTO)
                 val tipoLancamento = if (tipoLancamentoIndex != -1 && !cursor.isNull(tipoLancamentoIndex)) cursor.getString(tipoLancamentoIndex) else null
                 
+                conta = Contas(
+                    _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CONTA)),
+                    descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CONTA)),
+                    valor = cursor.getDouble(cursor.getColumnIndexOrThrow(KEY_VALOR_CONTA)),
+                    data = LocalDate.parse(cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATA_CONTA))),
+                    categoriaId = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_CATEGORIA_CONTA)),
+                    tipo_lancamento = tipoLancamento
+                )
+            }
+        }
+        return conta
+    }
+
+    // Busca uma conta pelo seu ID na tabela de gastos recorrentes.
+    fun getGastoRecorrenteById(id: Long): Contas? {
+        val db = this.readableDatabase
+        var conta: Contas? = null
+        db.rawQuery("SELECT * FROM $TABLE_GASTOS_RECORRENTES WHERE $KEY_ID_CONTA = ?", arrayOf(id.toString())).use { cursor ->
+            if (cursor.moveToFirst()) {
+                val tipoLancamentoIndex = cursor.getColumnIndex(KEY_TIPO_LANCAMENTO)
+                val tipoLancamento = if (tipoLancamentoIndex != -1 && !cursor.isNull(tipoLancamentoIndex)) cursor.getString(tipoLancamentoIndex) else null
+
                 conta = Contas(
                     _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CONTA)),
                     descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CONTA)),

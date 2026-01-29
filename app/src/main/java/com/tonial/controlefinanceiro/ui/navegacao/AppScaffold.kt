@@ -31,12 +31,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tonial.controlefinanceiro.database.DatabaseHandler
 import com.tonial.controlefinanceiro.entity.Categorias
+import com.tonial.controlefinanceiro.model.ContaRecorrenteViewModel
 import com.tonial.controlefinanceiro.model.FluxoViewModel
 import com.tonial.controlefinanceiro.ui.dashboard.DashboardScreen
 import com.tonial.controlefinanceiro.ui.historico.HistoricoScreen
 import com.tonial.controlefinanceiro.ui.splash.SplashScreen
 import com.tonial.controlefinanceiro.ui.telas.ListarCategoriasScreen
 import com.tonial.controlefinanceiro.ui.telas.TelaCategoria
+import com.tonial.controlefinanceiro.ui.telas.TelaContaRecorrente
 import com.tonial.controlefinanceiro.ui.telas.TelaLancamentoConta
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -50,6 +52,7 @@ object Routes {
     const val CADASTRO_CATEGORIA = "cadastro_categoria"
     const val HISTORICO = "historico"
     const val LISTA_CATEGORIA = "lista_categoria"
+    const val CONTA_RECORRENTE = "conta_recorrente"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +64,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
     val context = LocalContext.current
     val banco = remember { DatabaseHandler.getInstance(context) }
     val viewModel: FluxoViewModel = viewModel()
+    val contaRecorrenteViewModel: ContaRecorrenteViewModel = viewModel()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -126,7 +130,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
         drawerContent = {
             ModalDrawerSheet {
                 NavigationDrawerItem(
-                    label = { Text(text = "Dashboard") },
+                    label = { Text(text = "📈 Dashboard") },
                     selected = currentRoute == Routes.DASHBOARD,
                     onClick = {
                         navController.navigate(Routes.DASHBOARD) { launchSingleTop = true }
@@ -134,7 +138,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     }
                 )
                 NavigationDrawerItem(
-                    label = { Text(text = "Histórico de lançamentos") },
+                    label = { Text(text = "📆 Histórico de lançamentos") },
                     selected = currentRoute == Routes.HISTORICO,
                     onClick = {
                         navController.navigate(Routes.HISTORICO) { launchSingleTop = true }
@@ -142,7 +146,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     }
                 )
                 NavigationDrawerItem(
-                    label = { Text(text = "Lançamento de Conta") },
+                    label = { Text(text = "➕ Lançamento de Conta") },
                     selected = currentRoute?.startsWith(Routes.LANCAMENTO_CONTA) == true,
                     onClick = {
                         navController.navigate(Routes.LANCAMENTO_CONTA) { launchSingleTop = true }
@@ -150,7 +154,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     }
                 )
                 NavigationDrawerItem(
-                    label = { Text(text = "Cadastro de Categoria") },
+                    label = { Text(text = "📃 Cadastro de Categoria") },
                     selected = currentRoute == Routes.CADASTRO_CATEGORIA,
                     onClick = {
                         navController.navigate(Routes.CADASTRO_CATEGORIA) { launchSingleTop = true }
@@ -158,16 +162,32 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     }
                 )
                 NavigationDrawerItem(
-                    label = { Text(text = "Lista de Categoria") },
+                    label = { Text(text = "📃 Lista de Categoria") },
                     selected = currentRoute == Routes.LISTA_CATEGORIA,
                     onClick = {
                         navController.navigate(Routes.LISTA_CATEGORIA) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
                     }
                 )
+                NavigationDrawerItem(
+                    label = { Text(text = "🕐 Cadastro de Conta Recorrente") },
+                    selected = currentRoute == Routes.CONTA_RECORRENTE,
+                    onClick = {
+                        navController.navigate(Routes.CONTA_RECORRENTE) { launchSingleTop = true }
+                        scope.launch { drawerState.close() }
+                    }
+                )
                 Spacer(Modifier.weight(1f))
                 NavigationDrawerItem(
-                    label = { Text(text = "Backup do Banco de Dados") },
+                    label = { Text(text = "📥 Importar Banco de Dados") },
+                    selected = false,
+                    onClick = {
+                        restoreLauncher.launch(arrayOf("application/octet-stream"))
+                        scope.launch { drawerState.close() }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = { Text(text = "📤 Exportar Banco de Dados") },
                     selected = false,
                     onClick = {
                         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
@@ -176,14 +196,6 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                             putExtra(Intent.EXTRA_TITLE, "backup.sqlite")
                         }
                         backupLauncher.launch(intent)
-                        scope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    label = { Text(text = "Restaurar Backup") },
-                    selected = false,
-                    onClick = {
-                        restoreLauncher.launch(arrayOf("application/octet-stream"))
                         scope.launch { drawerState.close() }
                     }
                 )
@@ -259,6 +271,39 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     },
                     lancamentoId = lancamentoId?.toLongOrNull(),
                     isOpenedFromWidget = isOpenedFromWidget
+                )
+            }
+            composable(
+                route = "${Routes.CONTA_RECORRENTE}?lancamentoId={lancamentoId}",
+                arguments = listOf(navArgument("lancamentoId") {
+                    type = NavType.StringType
+                    nullable = true
+                })
+            ) {
+                var categorias by remember { mutableStateOf<List<Categorias>>(emptyList()) }
+                val lancamentoId = it.arguments?.getString("lancamentoId")
+
+                LaunchedEffect(Unit) {
+                    withContext(Dispatchers.IO) {
+                        categorias = banco.getAllCategorias()
+                    }
+                }
+
+                TelaContaRecorrente(
+                    viewModel = contaRecorrenteViewModel,
+                    categorias = categorias,
+                    onSaveClick = {
+                        if (contaRecorrenteViewModel.salvarConta()) {
+                            Toast.makeText(context, "Conta recorrente salva com sucesso!", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        } else {
+                            contaRecorrenteViewModel.mensagemErro?.let {
+                                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    onBackClick = { navController.popBackStack() },
+                    lancamentoId = lancamentoId?.toLongOrNull()
                 )
             }
             composable(
