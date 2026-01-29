@@ -256,7 +256,7 @@ class DatabaseHandler private constructor(context: Context) :
             FROM $TABLE_CATEGORIAS T1
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
-            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now') 
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
@@ -267,7 +267,7 @@ class DatabaseHandler private constructor(context: Context) :
         return total
     }
 
-    // Retorna o total de gastos do mês anterior para o comparativo.
+    // Retorna o total de gastos do mês anterior para o comparativo sem contabilizar lançamentos unicos.
     fun getTotalGastoMesAnterior(): BigDecimal {
         val db = this.readableDatabase
         val query = """
@@ -276,6 +276,7 @@ class DatabaseHandler private constructor(context: Context) :
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
             AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now', '-1 month')
+            AND (T2.$KEY_TIPO_LANCAMENTO != '${TIPO_LANCAMENTO_UNICO}' OR T2.$KEY_TIPO_LANCAMENTO IS NULL)
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
@@ -284,6 +285,67 @@ class DatabaseHandler private constructor(context: Context) :
                 if (!cursor.isNull(0)) {
                     total = BigDecimal(cursor.getDouble(0))
                 }
+            }
+        }
+        return total
+    }
+
+    // Retorna o total de gastos recorrentes no mês atual.
+    fun getTotalGastoRecorrenteMesAtual(): BigDecimal {
+        val db = this.readableDatabase
+        val query = """
+            SELECT SUM(T2.$KEY_VALOR_CONTA)
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
+            AND T2.$KEY_TIPO_LANCAMENTO == '${TIPO_LANCAMENTO_RECORRENTE}'
+        """
+        var total = BigDecimal.ZERO
+        db.rawQuery(query, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                total = BigDecimal(cursor.getDouble(0))
+            }
+        }
+        return total
+    }
+
+    // Retorna o total de gastos unicos no mês atual.
+    fun getTotalGastoUnicosMesAtual(): BigDecimal {
+        val db = this.readableDatabase
+        val query = """
+            SELECT SUM(T2.$KEY_VALOR_CONTA)
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
+            AND T2.$KEY_TIPO_LANCAMENTO == '${TIPO_LANCAMENTO_UNICO}'
+        """
+        var total = BigDecimal.ZERO
+        db.rawQuery(query, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                total = BigDecimal(cursor.getDouble(0))
+            }
+        }
+        return total
+    }
+
+    // Retorna o total de gastos no mês atual, desconsiderando as variaveis .
+    fun getTotalGastosNormaisMesAtual(): BigDecimal {
+        val db = this.readableDatabase
+        val query = """
+            SELECT SUM(T2.$KEY_VALOR_CONTA)
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
+          AND COALESCE(T2.$KEY_TIPO_LANCAMENTO, 'SEM_TIPO')
+          NOT IN ('${TIPO_LANCAMENTO_UNICO}', '${TIPO_LANCAMENTO_RECORRENTE}')
+        """
+        var total = BigDecimal.ZERO
+        db.rawQuery(query, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                total = BigDecimal(cursor.getDouble(0))
             }
         }
         return total
