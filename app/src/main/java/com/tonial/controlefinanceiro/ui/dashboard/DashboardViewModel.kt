@@ -47,9 +47,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _lancamentosCount = MutableStateFlow(0)
 
     //valor de gastos do mes
-    //private val _gastosNormaisMes = MutableStateFlow(BigDecimal.ZERO)
+    private val _gastosNormaisMes = MutableStateFlow(BigDecimal.ZERO)
     private val _gastosUnicosMes = MutableStateFlow(BigDecimal.ZERO)
     private val _gastosRecorrentesMes = MutableStateFlow(BigDecimal.ZERO)
+
+    private val _gastosTabelaRecorrentesMes = MutableStateFlow(BigDecimal.ZERO)
 
     val lancamentosCount: StateFlow<Int> = _lancamentosCount
 
@@ -61,10 +63,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             _categoriasMaisGastas.value = dbHandler.getCategoriasMaisGastasMesAtual()
             _ultimosLancamentos.value = dbHandler.getUltimosLancamentos()
             _lancamentosCount.value = dbHandler.getLancamentosCountMesAtual()
-            //_gastosNormaisMes.value = dbHandler.getTotalGastosNormaisMesAtual()
             _gastosUnicosMes.value = dbHandler.getTotalGastoUnicosMesAtual()
             _gastosRecorrentesMes.value = dbHandler.getTotalGastoRecorrenteMesAtual()
+            _gastosNormaisMes.value = _totalGastoMes.value.subtract(_gastosUnicosMes.value).subtract(_gastosRecorrentesMes.value)
 
+            _gastosTabelaRecorrentesMes.value = dbHandler.getTotalTabelaRecorrenteMesAtual()
 
             // Define as datas para os cálculos.
             val hoje = LocalDate.now()
@@ -91,22 +94,19 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 } else {
                     _variacaoMes.value = if (_totalGastoMes.value  > BigDecimal.ZERO) 100.0 else 0.0
                 }
-            } else {
+            }
+            else {
                 _gastoProporcionalMesAnterior.value = BigDecimal.ZERO
                 _variacaoMes.value = if (_totalGastoMes.value  > BigDecimal.ZERO) 100.0 else 0.0
             }
 
             // Calcula a projeção de gastos para o final do mês atual.
             if (diaAtual > 0 && _totalGastoMes.value  > BigDecimal.ZERO) {
-                val mediaDiariaAtual = _totalGastoMes.value.subtract(_gastosUnicosMes.value).subtract(_gastosRecorrentesMes.value)
-                        .divide(BigDecimal(diaAtual), 2, RoundingMode.HALF_UP)
+                val mediaDiariaAtual = _gastosNormaisMes.value.divide(BigDecimal(diaAtual), 2, RoundingMode.HALF_UP)
                 _mediaDiariaAtual.value = mediaDiariaAtual
-                val projecao = _totalGastoMes.value  + mediaDiariaAtual.multiply(BigDecimal(diasRestantes))
+                val mediaRestoMes = mediaDiariaAtual.multiply(BigDecimal(diasRestantes))
+                val projecao = _totalGastoMes.value  + mediaRestoMes + _gastosTabelaRecorrentesMes.value
                 _projecaoGastoMes.value = projecao
-//                val mediaDiariaAtual = totalGastoAtual.divide(BigDecimal(diaAtual), 2, RoundingMode.HALF_UP)
-//                _mediaDiariaAtual.value = mediaDiariaAtual
-//                val projecao = mediaDiariaAtual.multiply(BigDecimal(diasNoMesAtual))
-//                _projecaoGastoMes.value = projecao
             } else {
                 _projecaoGastoMes.value = BigDecimal.ZERO
                 _mediaDiariaAtual.value = BigDecimal.ZERO

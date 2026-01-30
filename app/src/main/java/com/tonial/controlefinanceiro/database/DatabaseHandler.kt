@@ -457,16 +457,14 @@ class DatabaseHandler private constructor(context: Context) :
     }
 
     // Retorna o total de gastos no mês atual, desconsiderando as variaveis .
-    fun getTotalGastosNormaisMesAtual(): BigDecimal {
+    fun getTotalTabelaRecorrenteMesAtual(): BigDecimal {
         val db = this.readableDatabase
         val query = """
             SELECT SUM(T2.$KEY_VALOR_CONTA)
             FROM $TABLE_CATEGORIAS T1
-            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            INNER JOIN $TABLE_GASTOS_RECORRENTES T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
-            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
-          AND COALESCE(T2.$KEY_TIPO_LANCAMENTO, 'SEM_TIPO')
-          NOT IN ('$TIPO_LANCAMENTO_UNICO', '$TIPO_LANCAMENTO_RECORRENTE')
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now') 
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
