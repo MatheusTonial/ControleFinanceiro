@@ -96,6 +96,21 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Carrega os dados de uma conta recorrente para a tela de lançamento.
+    fun loadGastoRecorrente(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHandler.getGastoRecorrenteById(id)?.let { conta ->
+                contaId = null // Garante que será um novo lançamento.
+                descricao_conta = conta.descricao
+                valor_conta = conta.valor
+                data_conta = conta.data
+                categoria_id_conta = conta.categoriaId
+                // O lançamento será recorrente, então o switch fica desmarcado.
+                lancamentoUnico_conta = false
+            }
+        }
+    }
+
     fun onDescricaoContaChange(newValue: String) {
         descricao_conta = newValue
     }
@@ -126,14 +141,18 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
         mensagemErro = null
     }
 
-    fun salvarConta(): Boolean {
+    fun salvarConta(gastoRecorrenteId: Long?): Boolean {
         if (descricao_conta.isBlank() || valor_conta == 0.0 || categoria_id_conta == null) {
             mensagemErro = "Preencha todos os campos obrigatórios."
             return false
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            val tipoLancamento = if (lancamentoUnico_conta) DatabaseHandler.TIPO_LANCAMENTO_UNICO else null
+            val tipoLancamento = if (lancamentoUnico_conta && gastoRecorrenteId == null) {
+                DatabaseHandler.TIPO_LANCAMENTO_UNICO
+            } else {
+                DatabaseHandler.TIPO_LANCAMENTO_RECORRENTE
+            }
             val conta = Contas(
                 _id = contaId ?: 0,
                 descricao = descricao_conta,

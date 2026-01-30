@@ -33,6 +33,7 @@ import com.tonial.controlefinanceiro.database.DatabaseHandler
 import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.model.ContaRecorrenteViewModel
 import com.tonial.controlefinanceiro.model.FluxoViewModel
+import com.tonial.controlefinanceiro.model.ListaContasRecorrentesViewModel
 import com.tonial.controlefinanceiro.ui.dashboard.DashboardScreen
 import com.tonial.controlefinanceiro.ui.historico.HistoricoScreen
 import com.tonial.controlefinanceiro.ui.splash.SplashScreen
@@ -67,6 +68,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
     val banco = remember { DatabaseHandler.getInstance(context) }
     val viewModel: FluxoViewModel = viewModel()
     val contaRecorrenteViewModel: ContaRecorrenteViewModel = viewModel()
+    val listaContasRecorrentesViewModel: ListaContasRecorrentesViewModel = viewModel()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -239,14 +241,21 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                 )
             }
             composable(
-                route = "${Routes.LANCAMENTO_CONTA}?lancamentoId={lancamentoId}",
-                arguments = listOf(navArgument("lancamentoId") { 
-                    type = NavType.StringType
-                    nullable = true 
-                })
+                route = "${Routes.LANCAMENTO_CONTA}?lancamentoId={lancamentoId}&gastoRecorrenteId={gastoRecorrenteId}",
+                arguments = listOf(
+                    navArgument("lancamentoId") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                    navArgument("gastoRecorrenteId") {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
             ) {
                 var categorias by remember { mutableStateOf<List<Categorias>>(emptyList()) }
                 val lancamentoId = it.arguments?.getString("lancamentoId")
+                val gastoRecorrenteId = it.arguments?.getString("gastoRecorrenteId")
                 val isOpenedFromWidget = startDestination == Routes.LANCAMENTO_CONTA
 
                 LaunchedEffect(Unit) {
@@ -259,8 +268,16 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     viewModel = viewModel,
                     categorias = categorias,
                     onSaveClick = {
-                        if (viewModel.salvarConta()) {
+                        // Captura o valor e a descrição antes de salvar.
+                        val valor = viewModel.valor_conta
+                        val descricao = viewModel.descricao_conta
+
+                        if (viewModel.salvarConta(gastoRecorrenteId?.toLongOrNull())) {
                             Toast.makeText(context, "Conta salva com sucesso!", Toast.LENGTH_SHORT).show()
+                            // Se a conta foi lançada a partir de um gasto recorrente, atualiza a data, o valor e a descrição.
+                            gastoRecorrenteId?.toLongOrNull()?.let {
+                                listaContasRecorrentesViewModel.updateRecurringAccount(it, descricao, valor)
+                            }
                             if (isOpenedFromWidget) {
                                 navController.navigate(Routes.DASHBOARD) { popUpTo(Routes.LANCAMENTO_CONTA) { inclusive = true } }
                             } else {
@@ -280,6 +297,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                         }
                     },
                     lancamentoId = lancamentoId?.toLongOrNull(),
+                    gastoRecorrenteId = gastoRecorrenteId?.toLongOrNull(),
                     isOpenedFromWidget = isOpenedFromWidget
                 )
             }
@@ -321,6 +339,10 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onBackClick = { navController.popBackStack() },
                     onNavigateToContaRecorrente = {
                         val route = if (it != null) "${Routes.CONTA_RECORRENTE}?lancamentoId=$it" else Routes.CONTA_RECORRENTE
+                        navController.navigate(route)
+                    },
+                    onLaunchConta = {
+                        val route = "${Routes.LANCAMENTO_CONTA}?gastoRecorrenteId=$it"
                         navController.navigate(route)
                     }
                 )

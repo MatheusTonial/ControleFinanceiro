@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ListaContasRecorrentesViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -27,6 +28,22 @@ class ListaContasRecorrentesViewModel(application: Application) : AndroidViewMod
         viewModelScope.launch(Dispatchers.IO) {
             dbHandler.deleteGastoRecorrenteById(id)
             loadContasRecorrentes()
+        }
+    }
+
+    // Atualiza a descrição, o valor e a data de uma conta recorrente para o mês seguinte.
+    fun updateRecurringAccount(id: Long, newDescription: String, newValue: Double) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val conta = dbHandler.getGastoRecorrenteById(id)
+            if (conta != null) {
+                val novaData = conta.data.plusMonths(1)
+                val contaAtualizada = conta.copy(descricao = newDescription, data = novaData, valor = newValue)
+                dbHandler.updateGastoRecorrente(contaAtualizada)
+                // Recarrega a lista para refletir a alteração na UI.
+                withContext(Dispatchers.Main) {
+                    loadContasRecorrentes()
+                }
+            }
         }
     }
 }

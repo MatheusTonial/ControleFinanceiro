@@ -65,14 +65,15 @@ fun TelaLancamentoConta(
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
     lancamentoId: Long? = null,
+    gastoRecorrenteId: Long? = null, // Parâmetro para o ID do gasto recorrente.
     isOpenedFromWidget: Boolean = false
 ) {
-    // Efeito para carregar ou limpar a conta com base no ID do lançamento
-    LaunchedEffect(lancamentoId) {
-        if (lancamentoId != null) {
-            viewModel.loadConta(lancamentoId)
-        } else {
-            viewModel.limpaConta()
+    // Efeito para carregar os dados da conta, seja um lançamento existente, um gasto recorrente ou um novo lançamento.
+    LaunchedEffect(lancamentoId, gastoRecorrenteId) {
+        when {
+            lancamentoId != null -> viewModel.loadConta(lancamentoId)
+            gastoRecorrenteId != null -> viewModel.loadGastoRecorrente(gastoRecorrenteId)
+            else -> viewModel.limpaConta()
         }
     }
 
@@ -92,7 +93,8 @@ fun TelaLancamentoConta(
         onLancamentoUnicoChange = { viewModel.onLancamentoUnicoContaChange(it) },
         onSaveClick = onSaveClick,
         onBackClick = onBackClick,
-        isEditMode = lancamentoId != null
+        isEditMode = lancamentoId != null,
+        isFromGastoRecorrente = gastoRecorrenteId != null
     )
 }
 
@@ -114,7 +116,8 @@ fun TelaLancamentoContaContent(
     onLancamentoUnicoChange: (Boolean) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
-    isEditMode: Boolean
+    isEditMode: Boolean,
+    isFromGastoRecorrente: Boolean
 ) {
     Scaffold(
         topBar = {
@@ -270,11 +273,15 @@ fun TelaLancamentoContaContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Lançamento único")
-                Switch(
-                    checked = lancamentoUnico,
-                    onCheckedChange = onLancamentoUnicoChange
-                )
+                if (isFromGastoRecorrente) {
+                    Text("Este é um lançamento de uma conta recorrente.")
+                } else {
+                    Text("Lançamento único")
+                    Switch(
+                        checked = lancamentoUnico,
+                        onCheckedChange = onLancamentoUnicoChange
+                    )
+                }
             }
 
             // Botão para salvar
@@ -347,7 +354,8 @@ fun TelaLancamentoContaPreview() {
             onLancamentoUnicoChange = {},
             onSaveClick = {},
             onBackClick = {},
-            isEditMode = false
+            isEditMode = false,
+            isFromGastoRecorrente = false
         )
     }
 }

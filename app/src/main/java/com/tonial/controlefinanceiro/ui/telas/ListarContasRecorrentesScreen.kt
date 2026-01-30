@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
@@ -52,6 +53,7 @@ import java.util.Locale
 fun ListarContasRecorrentesScreen(
     onBackClick: () -> Unit,
     onNavigateToContaRecorrente: (Long?) -> Unit,
+    onLaunchConta: (Long) -> Unit,
     viewModel: ListaContasRecorrentesViewModel = viewModel()
 ) {
     val contasRecorrentes by viewModel.contasRecorrentes.collectAsState()
@@ -142,13 +144,22 @@ fun ListarContasRecorrentesScreen(
                                     expanded = expanded,
                                     onDismissRequest = { expanded = false }) {
                                     DropdownMenuItem(
+                                        text = { Text("Lançar conta") },
+                                        leadingIcon = { Icon(Icons.Default.ArrowForward, contentDescription = null) },
+                                        onClick = {
+                                            onLaunchConta(conta._id)
+                                            expanded = false
+                                        })
+                                    DropdownMenuItem(
                                         text = { Text("Editar") },
+                                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                                         onClick = {
                                             onNavigateToContaRecorrente(conta._id)
                                             expanded = false
                                         })
                                     DropdownMenuItem(
                                         text = { Text("Excluir") },
+                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
                                         onClick = {
                                             viewModel.deleteContaRecorrente(conta._id)
                                             expanded = false
