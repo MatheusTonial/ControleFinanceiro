@@ -1,5 +1,6 @@
 package com.tonial.controlefinanceiro.ui.telas
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,6 +47,7 @@ import com.tonial.controlefinanceiro.model.ListaContasRecorrentesViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -97,10 +100,28 @@ fun ListarContasRecorrentesScreen(
                 // O estado de 'expanded' agora é local para cada item do card.
                 var expanded by remember { mutableStateOf(false) }
 
+                // Lógica para determinar a cor da borda com base na data.
+                val hoje = LocalDate.now()
+                val dataConta = conta.data
+                val borderColor = when {
+                    // Meses futuros: borda verde.
+                    dataConta.year > hoje.year || (dataConta.year == hoje.year && dataConta.monthValue > hoje.monthValue) -> Color(
+                        0xFF7AB77E
+                    ) // Verde
+                    // Mês atual: borda amarela.
+                    dataConta.year == hoje.year && dataConta.monthValue == hoje.monthValue -> Color(
+                        0xFFF1E372
+                    ) // Amarelo
+                    // Meses passados: borda vermelha.
+                    else -> Color(0xFFC03A2E) // Vermelho
+                }
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
+                        .padding(vertical = 4.dp),
+                    // Adiciona a borda colorida ao card.
+                    border = BorderStroke(2.dp, borderColor)
                 ) {
                     Row(
                         modifier = Modifier
@@ -112,8 +133,9 @@ fun ListarContasRecorrentesScreen(
                         // Coluna para descrição, data e categoria.
                         Column(modifier = Modifier.weight(1f)) {
                             Text(conta.descricao, fontWeight = FontWeight.SemiBold)
+                            // Altera o formato da data para dd/MM/yyyy.
                             val dataFormatada =
-                                conta.data.format(DateTimeFormatter.ofPattern("dd/MM"))
+                                conta.data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                             // Exibe o nome da categoria.
                             val categoriaNome = categoryMap[conta.categoriaId] ?: "Sem categoria"
                             Text("$dataFormatada • $categoriaNome", fontSize = 12.sp)
