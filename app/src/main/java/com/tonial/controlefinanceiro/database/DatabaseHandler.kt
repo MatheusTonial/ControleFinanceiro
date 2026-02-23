@@ -25,6 +25,7 @@ class DatabaseHandler private constructor(context: Context) :
         // Constantes para o tipo de lançamento.
         const val TIPO_LANCAMENTO_UNICO = "unico"
         const val TIPO_LANCAMENTO_RECORRENTE = "recorrente"
+        const val TIPO_LANCAMENTO_NORMAL = ""
 
         @Volatile
         private var INSTANCE: DatabaseHandler? = null

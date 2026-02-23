@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -36,7 +37,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
@@ -131,9 +134,17 @@ fun TelaLancamentoContaContent(
             )
         }
     ) { paddingValues ->
-        val focusRequester = remember { FocusRequester() }
+        val descricaoFocusRequester = remember { FocusRequester() }
+        val valorFocusRequester = remember { FocusRequester() }
         var showDatePicker by remember { mutableStateOf(false) }
         var expanded by remember { mutableStateOf(false) }
+
+        // Efeito para solicitar foco no campo de descrição ao entrar na tela, agilizando o lançamento
+        LaunchedEffect(Unit) {
+            if (!isEditMode && !isFromGastoRecorrente) {
+                descricaoFocusRequester.requestFocus()
+            }
+        }
 
         // Texto da categoria selecionada
         var selectedCategoryText by remember(categoriaId, categorias) {
@@ -185,7 +196,11 @@ fun TelaLancamentoContaContent(
                 label = { Text("Descrição") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(focusRequester),
+                    .focusRequester(descricaoFocusRequester),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(
+                    onNext = { valorFocusRequester.requestFocus() }
+                ),
             )
             Row(
                 modifier = Modifier
@@ -194,6 +209,7 @@ fun TelaLancamentoContaContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val focusManager = LocalFocusManager.current
                 // Campo de texto para o valor com formatação de moeda
                 OutlinedTextField(
                     value = valorDigits,
@@ -209,8 +225,19 @@ fun TelaLancamentoContaContent(
                         }
                     },
                     label = { Text("Valor") },
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(valorFocusRequester),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = {
+                            focusManager.clearFocus()
+                            expanded = true
+                        }
+                    ),
                     // Aplica a transformação visual para formatar como moeda
                     visualTransformation = CurrencyVisualTransformation(),
                     // Alinha o texto à direita
@@ -265,7 +292,7 @@ fun TelaLancamentoContaContent(
                     }
                 }
             }
-            
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

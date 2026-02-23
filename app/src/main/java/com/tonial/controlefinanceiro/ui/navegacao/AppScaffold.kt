@@ -1,11 +1,14 @@
 package com.tonial.controlefinanceiro.ui.navegacao
 
+import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalDrawerSheet
@@ -39,12 +42,15 @@ import com.tonial.controlefinanceiro.ui.historico.HistoricoScreen
 import com.tonial.controlefinanceiro.ui.splash.SplashScreen
 import com.tonial.controlefinanceiro.ui.telas.ListarCategoriasScreen
 import com.tonial.controlefinanceiro.ui.telas.ListarContasRecorrentesScreen
+import com.tonial.controlefinanceiro.ui.telas.SobreScreen
 import com.tonial.controlefinanceiro.ui.telas.TelaCategoria
 import com.tonial.controlefinanceiro.ui.telas.TelaContaRecorrente
 import com.tonial.controlefinanceiro.ui.telas.TelaLancamentoConta
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import kotlin.system.exitProcess
 
 object Routes {
@@ -56,6 +62,7 @@ object Routes {
     const val LISTA_CATEGORIA = "lista_categoria"
     const val CONTA_RECORRENTE = "conta_recorrente"
     const val LISTA_CONTA_RECORRENTE = "lista_conta_recorrente"
+    const val SOBRE = "sobre"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,6 +82,43 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
 
     val isSplashScreen = currentRoute == Routes.SPLASH
 
+    // State for the backup alert dialog
+    var showBackupAlert by remember { mutableStateOf(false) }
+    var daysSinceLastBackup by remember { mutableStateOf(0L) }
+
+    // SharedPreferences logic
+    val sharedPreferences = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
+
+    LaunchedEffect(Unit) {
+        val lastBackupString = sharedPreferences.getString("last_backup_date", null)
+        if (lastBackupString != null) {
+            val lastBackupDate = LocalDate.parse(lastBackupString)
+            val currentDate = LocalDate.now()
+            val days = ChronoUnit.DAYS.between(lastBackupDate, currentDate)
+            if (days > 30) {
+                daysSinceLastBackup = days
+                showBackupAlert = true
+            }
+        }
+        else{
+            daysSinceLastBackup = 999
+            showBackupAlert = true
+        }
+    }
+
+    if (showBackupAlert) {
+        AlertDialog(
+            onDismissRequest = { showBackupAlert = false },
+            title = { Text("Aviso de Backup") },
+            text = { Text("Faz $daysSinceLastBackup dias desde o seu último backup. Considere fazer um novo backup para proteger seus dados.") },
+            confirmButton = {
+                Button(onClick = { showBackupAlert = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
     val backupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         result.data?.data?.let { uri ->
             scope.launch {
@@ -90,6 +134,12 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     }
                 } catch (e: Exception) {
                     "Falha ao realizar o backup: ${e.message}"
+                }
+                if (message == "Backup realizado com sucesso!") {
+                    with(sharedPreferences.edit()) {
+                        putString("last_backup_date", LocalDate.now().toString())
+                        apply()
+                    }
                 }
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
@@ -190,6 +240,14 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     }
                 )
                 Spacer(Modifier.weight(1f))
+                 NavigationDrawerItem(
+                    label = { Text(text = "ℹ️ Sobre") },
+                    selected = currentRoute == Routes.SOBRE,
+                    onClick = {
+                        navController.navigate(Routes.SOBRE) { launchSingleTop = true }
+                        scope.launch { drawerState.close() }
+                    }
+                )
                 NavigationDrawerItem(
                     label = { Text(text = "📥 Importar Banco de Dados") },
                     selected = false,
@@ -291,7 +349,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     },
                     onBackClick = {
                          if (isOpenedFromWidget) {
-                            navController.navigate(Routes.DASHBOARD) { popUpTo(Routes.LANCAMENTO_CONTA) { inclusive = true } }
+                             navController.navigate(Routes.DASHBOARD) { popUpTo(Routes.LANCAMENTO_CONTA) { inclusive = true } }
                         } else {
                             navController.popBackStack()
                         }
@@ -374,6 +432,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                         navController.navigate(route)
                     }
                 )
+            }
+            composable(Routes.SOBRE) {
+                SobreScreen(drawerState = drawerState)
             }
         }
     }

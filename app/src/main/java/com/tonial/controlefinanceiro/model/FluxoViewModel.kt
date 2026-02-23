@@ -148,10 +148,13 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            val tipoLancamento = if (lancamentoUnico_conta && gastoRecorrenteId == null) {
+            val tipoLancamento = if (lancamentoUnico_conta) {
                 DatabaseHandler.TIPO_LANCAMENTO_UNICO
-            } else {
+            } else if(gastoRecorrenteId != null && gastoRecorrenteId > 0) {
                 DatabaseHandler.TIPO_LANCAMENTO_RECORRENTE
+            }
+            else{
+                DatabaseHandler.TIPO_LANCAMENTO_NORMAL
             }
             val conta = Contas(
                 _id = contaId ?: 0,
