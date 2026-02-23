@@ -286,7 +286,7 @@ fun Filtros(
         // Diálogo para selecionar a data de início.
         if (showDatePickerInicio.value) {
             val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = dataInicio.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                initialSelectedDateMillis = dataInicio.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
             )
             DatePickerDialog(
                 onDismissRequest = { showDatePickerInicio.value = false },
@@ -294,7 +294,7 @@ fun Filtros(
                     TextButton(
                         onClick = {
                             datePickerState.selectedDateMillis?.let { millis ->
-                                val selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+                                val selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
                                 onDataInicioChange(selectedDate)
                             }
                             showDatePickerInicio.value = false
@@ -312,7 +312,7 @@ fun Filtros(
         // Diálogo para selecionar a data de fim.
         if (showDatePickerFim.value) {
             val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = dataFim.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                initialSelectedDateMillis = dataFim.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
             )
             DatePickerDialog(
                 onDismissRequest = { showDatePickerFim.value = false },
@@ -320,7 +320,7 @@ fun Filtros(
                     TextButton(
                         onClick = {
                             datePickerState.selectedDateMillis?.let { millis ->
-                                val selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+                                val selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
                                 onDataFimChange(selectedDate)
                             }
                             showDatePickerFim.value = false
@@ -406,7 +406,7 @@ fun Filtros(
                 onClick = {
                     val hoje = LocalDate.now()
                     onDataInicioChange(hoje.withDayOfMonth(1))
-                    onDataFimChange(hoje)
+                    onDataFimChange(hoje.plusMonths(1).withDayOfMonth(1).minusDays(1))
                 },
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
