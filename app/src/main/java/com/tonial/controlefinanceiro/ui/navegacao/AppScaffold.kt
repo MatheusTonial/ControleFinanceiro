@@ -50,6 +50,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.system.exitProcess
 
@@ -85,6 +86,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
     // State for the backup alert dialog
     var showBackupAlert by remember { mutableStateOf(false) }
     var daysSinceLastBackup by remember { mutableStateOf(0L) }
+    var lastBackupDateFormatted by remember { mutableStateOf("") }
 
     // SharedPreferences logic
     val sharedPreferences = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
@@ -93,6 +95,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
         val lastBackupString = sharedPreferences.getString("last_backup_date", null)
         if (lastBackupString != null) {
             val lastBackupDate = LocalDate.parse(lastBackupString)
+            lastBackupDateFormatted = lastBackupDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
             val currentDate = LocalDate.now()
             val days = ChronoUnit.DAYS.between(lastBackupDate, currentDate)
             if (days > 30) {
@@ -136,10 +139,12 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     "Falha ao realizar o backup: ${e.message}"
                 }
                 if (message == "Backup realizado com sucesso!") {
+                    val now = LocalDate.now()
                     with(sharedPreferences.edit()) {
-                        putString("last_backup_date", LocalDate.now().toString())
+                        putString("last_backup_date", now.toString())
                         apply()
                     }
+                    lastBackupDateFormatted = now.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                 }
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
@@ -257,7 +262,14 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     }
                 )
                 NavigationDrawerItem(
-                    label = { Text(text = "📤 Exportar Banco de Dados") },
+                    label = {
+                        val labelText = if (lastBackupDateFormatted.isNotEmpty()) {
+                            "📤 Exportar Banco de Dados ($lastBackupDateFormatted)"
+                        } else {
+                            "📤 Exportar Banco de Dados"
+                        }
+                        Text(text = labelText)
+                    },
                     selected = false,
                     onClick = {
                         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
