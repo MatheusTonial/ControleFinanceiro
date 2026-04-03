@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.tonial.controlefinanceiro.database.DatabaseHandler
 import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
+import com.tonial.controlefinanceiro.widget.WidgetUpdateWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -124,6 +125,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch(Dispatchers.IO) {
             dbHandler.deleteLancamentoById(lancamento._id)
             loadDashboardData()
+            // Atualiza o widget após deletar
+            WidgetUpdateWorker.enqueue(getApplication())
         }
     }
 }

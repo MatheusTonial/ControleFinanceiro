@@ -57,6 +57,15 @@ dependencies {
     // Adicionada a dependência para os ícones extendidos
     implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
 
+    // Glance para Widgets
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
+    // Dependência para preview do Glance
+    debugImplementation(libs.androidx.glance.appwidget.preview)
+    
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

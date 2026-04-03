@@ -10,6 +10,7 @@ import com.tonial.controlefinanceiro.database.DatabaseHandler
 import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.entity.Contas
 import com.tonial.controlefinanceiro.entity.TipoCategoria
+import com.tonial.controlefinanceiro.widget.WidgetUpdateWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -169,6 +170,10 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 dbHandler.updateConta(conta)
             }
+            
+            // Atualiza o widget após salvar o lançamento
+            WidgetUpdateWorker.enqueue(getApplication())
+
             limpaConta()
         }
         return true
