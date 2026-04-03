@@ -92,7 +92,10 @@ fun SobreScreen(drawerState: DrawerState) {
                     Text("Notas de Versão:", style = MaterialTheme.typography.titleMedium)
                 }
                 item {
-                    Text("v7.0 - Adicionado atalho no painel de configurções rapidas", modifier = Modifier.padding(vertical = 4.dp))
+                    Text("v8.0 - Novo widget com card do total gasto no mes atual. Cores baseadas no comparativo com o mês anterior.", modifier = Modifier.padding(vertical = 4.dp))
+                }
+                item {
+                    Text("v7.0 - Adicionado atalho no painel de configurções rapidas.", modifier = Modifier.padding(vertical = 4.dp))
                 }
                 item {
                     Text("v6.5 - Janela de aviso quando faz mais de 30 dias desde o ultimo backup.", modifier = Modifier.padding(vertical = 4.dp))
