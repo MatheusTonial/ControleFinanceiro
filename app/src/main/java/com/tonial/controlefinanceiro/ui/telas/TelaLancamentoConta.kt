@@ -40,6 +40,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
@@ -152,8 +153,10 @@ fun TelaLancamentoContaContent(
         }
 
         // Armazena o valor monetário como uma string de dígitos (ex: "12345" para 123,45)
+        // Usamos BigDecimal para evitar problemas de arredondamento com Double (ex: 0.29 * 100 virar 28.999...)
         var valorDigits by remember(valor) {
-            mutableStateOf(if (valor == 0.0) "" else (valor * 100).toLong().toString())
+            val valorEmCentavos = BigDecimal.valueOf(valor).multiply(BigDecimal(100)).toLong()
+            mutableStateOf(if (valorEmCentavos == 0L) "" else valorEmCentavos.toString())
         }
 
         // Diálogo para selecionar a data
@@ -189,7 +192,7 @@ fun TelaLancamentoContaContent(
                 .padding(paddingValues)
                 .padding(8.dp)
         ) {
-            // Campo de texto para a descrição
+            // Campo de texto para a descrição com capitalização automática por palavra
             OutlinedTextField(
                 value = descricao,
                 onValueChange = onDescricaoChange,
@@ -197,7 +200,10 @@ fun TelaLancamentoContaContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(descricaoFocusRequester),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words, // Define que cada palavra inicia com maiúscula
+                    imeAction = ImeAction.Next
+                ),
                 keyboardActions = KeyboardActions(
                     onNext = { valorFocusRequester.requestFocus() }
                 ),
