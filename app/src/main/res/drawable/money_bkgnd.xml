@@ -5,5 +5,5 @@
     android:viewportHeight="491">
   <path
       android:pathData="M0,0h491v491h-491z"
-      android:fillColor="#1A7C58"/>
+      android:fillColor="@color/terraform_surface"/>
 </vector>

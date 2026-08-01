@@ -2,6 +2,16 @@ package com.tonial.controlefinanceiro.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// Terraform Theme Colors
+val TerraformPrimary = Color(0xFFBD4B00)
+val TerraformSurface = Color(0xFFFBFBE2)
+val TerraformSecondary = Color(0xFF3E2723)
+val TerraformTertiary = Color(0xFF8D6E63)
+
+val TerraformOnPrimary = Color.White
+val TerraformOnSurface = Color(0xFF1C1B1F)
+
+// Legacy colors (keeping them for now to avoid breaking other things if they are used elsewhere)
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)
 val Pink80 = Color(0xFFEFB8C8)

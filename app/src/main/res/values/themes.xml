@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Usamos um tema base padrão do Android para evitar erros de compilação,
+         pois a interface principal é controlada pelo Jetpack Compose. -->
+    <style name="Theme.ControleFinanceiro" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Cor de fundo da janela (Splash e transições) -->
+        <item name="android:windowBackground">@color/terraform_surface</item>
 
-    <style name="Theme.ControleFinanceiro" parent="android:Theme.Material.Light.NoActionBar" />
+        <!-- Barras de sistema -->
+        <item name="android:statusBarColor">@color/terraform_surface</item>
+        <item name="android:navigationBarColor">@color/terraform_surface</item>
+
+        <!-- Ícones escuros para fundo claro -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+
+        <!-- Desativa a inversão de cores automática do Android (Force Dark) para manter a identidade clara -->
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
+    </style>
 </resources>

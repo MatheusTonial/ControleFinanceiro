@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import com.tonial.controlefinanceiro.ui.navegacao.AppScaffold
 import com.tonial.controlefinanceiro.ui.navegacao.Routes
 import com.tonial.controlefinanceiro.ui.theme.ControleFinanceiroTheme
@@ -21,7 +24,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ControleFinanceiroTheme {
-                AppScaffold(startDestination = startDestination)
+                // A Surface garante que o fundo TerraformSurface preencha toda a tela
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.background
+                ) {
+                    AppScaffold(startDestination = startDestination)
+                }
             }
         }
     }
