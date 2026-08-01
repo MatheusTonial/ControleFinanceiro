@@ -27,14 +27,16 @@ fun SplashScreen(onTimeout: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            // Alterado para TerraformPrimary para combinar com a barra de status e garantir contraste com ícones brancos
+            .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             painter = painterResource(id = R.drawable.money),
             contentDescription = "Ícone do App",
             modifier = Modifier.size(128.dp),
-            tint = MaterialTheme.colorScheme.primary
+            // Cor do ícone alterada para onPrimary (branco) para contraste sobre o fundo laranja
+            tint = MaterialTheme.colorScheme.onPrimary
         )
     }
 }

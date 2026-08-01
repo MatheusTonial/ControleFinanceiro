@@ -24,6 +24,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,7 +66,6 @@ fun TelaContaRecorrente(
     onBackClick: () -> Unit,
     lancamentoId: Long? = null,
 ) {
-    // Efeito para carregar ou limpar a conta com base no ID do lançamento
     LaunchedEffect(lancamentoId) {
         if (lancamentoId != null) {
             viewModel.loadConta(lancamentoId)
@@ -74,7 +74,6 @@ fun TelaContaRecorrente(
         }
     }
 
-    // Componente de UI desacoplado que recebe estado e callbacks
     TelaContaRecorrenteContent(
         modifier = modifier,
         descricao = viewModel.descricao,
@@ -118,7 +117,13 @@ fun TelaContaRecorrenteContent(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     ) { paddingValues ->
@@ -126,17 +131,37 @@ fun TelaContaRecorrenteContent(
         var showDatePicker by remember { mutableStateOf(false) }
         var expanded by remember { mutableStateOf(false) }
 
-        // Texto da categoria selecionada
+        // Cores robustas para evitar qualquer elemento branco sobre o fundo creme
+        val darkTextColor = MaterialTheme.colorScheme.onSurface
+        val darkLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        
+        val textFieldColors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = darkTextColor,
+            unfocusedTextColor = darkTextColor,
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            unfocusedLabelColor = darkLabelColor,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            unfocusedTrailingIconColor = darkLabelColor,
+            focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+            unfocusedLeadingIconColor = darkLabelColor,
+            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+            unfocusedPrefixColor = darkLabelColor,
+            unfocusedSuffixColor = darkLabelColor,
+            unfocusedPlaceholderColor = darkTextColor.copy(alpha = 0.5f),
+            focusedPlaceholderColor = darkTextColor.copy(alpha = 0.5f),
+            unfocusedSupportingTextColor = darkLabelColor,
+            focusedSupportingTextColor = darkLabelColor
+        )
+
         var selectedCategoryText by remember(categoriaId, categorias) {
             mutableStateOf(categorias.find { it._id == categoriaId }?.descricao ?: "")
         }
 
-        // Armazena o valor monetário como uma string de dígitos (ex: "12345" para 123,45)
         var valorDigits by remember(valor) {
             mutableStateOf(if (valor == 0.0) "" else (valor * 100).toLong().toString())
         }
 
-        // Diálogo para selecionar a data
         if (showDatePicker) {
             val datePickerState = rememberDatePickerState(
                 initialSelectedDateMillis = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -169,7 +194,6 @@ fun TelaContaRecorrenteContent(
                 .padding(paddingValues)
                 .padding(8.dp)
         ) {
-            // Campo de texto para a descrição
             OutlinedTextField(
                 value = descricao,
                 onValueChange = onDescricaoChange,
@@ -177,6 +201,7 @@ fun TelaContaRecorrenteContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
+                colors = textFieldColors
             )
             Row(
                 modifier = Modifier
@@ -185,16 +210,12 @@ fun TelaContaRecorrenteContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Campo de texto para o valor com formatação de moeda
                 OutlinedTextField(
                     value = valorDigits,
                     onValueChange = { newDigits ->
-                        // Permite apenas a entrada de dígitos
                         val filteredDigits = newDigits.filter { it.isDigit() }
-                        // Limita o comprimento para evitar overflow
                         if (filteredDigits.length <= 15) {
                             valorDigits = filteredDigits
-                            // Converte a string de dígitos para Double (ex: "123" -> 1.23)
                             val newValue = filteredDigits.toLongOrNull()?.div(100.0) ?: 0.0
                             onValorChange(newValue)
                         }
@@ -202,12 +223,10 @@ fun TelaContaRecorrenteContent(
                     label = { Text("Valor") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    // Aplica a transformação visual para formatar como moeda
                     visualTransformation = CurrencyVisualTransformationRecorrente(),
-                    // Alinha o texto à direita
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.End)
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.End),
+                    colors = textFieldColors
                 )
-                // Campo de texto para a data (não editável diretamente)
                 OutlinedTextField(
                     value = data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
                     onValueChange = { },
@@ -217,13 +236,12 @@ fun TelaContaRecorrenteContent(
                         .weight(1f)
                         .clickable { showDatePicker = true },
                     colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledTextColor = darkTextColor,
                         disabledBorderColor = MaterialTheme.colorScheme.outline,
-                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledLabelColor = darkLabelColor,
                     )
                 )
             }
-            // Menu dropdown para selecionar a categoria
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },
@@ -238,7 +256,7 @@ fun TelaContaRecorrenteContent(
                     modifier = Modifier
                         .menuAnchor()
                         .fillMaxWidth(),
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                    colors = textFieldColors
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
@@ -246,7 +264,7 @@ fun TelaContaRecorrenteContent(
                 ) {
                     categorias.forEach { categoria ->
                         DropdownMenuItem(
-                            text = { Text(categoria.descricao) },
+                            text = { Text(categoria.descricao, color = darkTextColor) },
                             onClick = {
                                 onCategoriaIdChange(categoria._id)
                                 selectedCategoryText = categoria.descricao
@@ -257,7 +275,6 @@ fun TelaContaRecorrenteContent(
                 }
             }
 
-            // Botão para salvar
             Button(
                 onClick = onSaveClick,
                 modifier = Modifier
@@ -270,23 +287,14 @@ fun TelaContaRecorrenteContent(
     }
 }
 
-// Classe para a transformação visual da moeda
 private class CurrencyVisualTransformationRecorrente : VisualTransformation {
-    // Formato de moeda para o Brasil (R$)
     private val currencyFormat = DecimalFormat.getCurrencyInstance(Locale("pt", "BR"))
 
     override fun filter(text: AnnotatedString): TransformedText {
-        // Pega a string de dígitos crus (ex: "12345")
         val digits = text.text
-
-        // Converte para BigDecimal (ex: 123.45)
         val value = digits.toBigDecimalOrNull()?.divide(BigDecimal(100)) ?: BigDecimal.ZERO
-
-        // Formata o valor como moeda (ex: "R$ 123,45")
         val formattedText = currencyFormat.format(value)
 
-        // Mapeamento de offset para manter o cursor sempre no final.
-        // Essencial para a entrada de valores da direita para a esquerda.
         val offsetMapping = object : OffsetMapping {
             override fun originalToTransformed(offset: Int): Int {
                 return formattedText.length
@@ -304,7 +312,6 @@ private class CurrencyVisualTransformationRecorrente : VisualTransformation {
 @Preview(showBackground = true)
 @Composable
 fun TelaContaRecorrentePreview() {
-    // Lista de categorias de exemplo
     val mockCategorias = listOf(
         Categorias(1, "Mercado", TipoCategoria.Perda, 0),
         Categorias(2, "Alimentação", TipoCategoria.Perda, 1),
@@ -312,7 +319,6 @@ fun TelaContaRecorrentePreview() {
     )
 
     ControleFinanceiroTheme {
-        // Usa o componente de UI desacoplado com dados de exemplo
         TelaContaRecorrenteContent(
             descricao = "Compra de teste",
             onDescricaoChange = {},

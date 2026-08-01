@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -58,7 +59,6 @@ fun ListarCategoriasScreen(
     }
 
     // Diálogo de confirmação para excluir uma categoria.
-    // É exibido quando showDeleteDialog é true.
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -67,7 +67,6 @@ fun ListarCategoriasScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // Ao confirmar, chama a função de exclusão no ViewModel.
                         categoriaToDelete?.let { viewModel.deleteCategoria(it) }
                         showDeleteDialog = false
                     }
@@ -76,44 +75,44 @@ fun ListarCategoriasScreen(
                 }
             },
             dismissButton = {
-                // Fecha o diálogo ao cancelar.
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
             }
         )
     }
 
-    // Estrutura principal da tela com TopAppBar e FloatingActionButton.
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Categorias") },
                 navigationIcon = {
-                    // Botão para voltar à tela anterior.
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
                     }
-                }
+                },
+                // Define a cor TerraformPrimary para o TopAppBar
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         },
         floatingActionButton = {
-            // Botão para adicionar uma nova categoria.
             FloatingActionButton(
-                onClick = { onNavigateToCategoria(null) }, // Passa null para indicar criação.
+                onClick = { onNavigateToCategoria(null) },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Adicionar Categoria")
             }
         }
     ) { paddingValues ->
-        // Lista de categorias exibida em uma LazyColumn para otimização de performance.
         LazyColumn(modifier = Modifier.padding(paddingValues)) {
             items(categorias) { categoria ->
-                // Componente para exibir cada item da lista de categorias.
                 CategoriaRow(
                     categoria = categoria,
-                    onEdit = { onNavigateToCategoria(it._id) }, // Navega para edição com o ID da categoria.
+                    onEdit = { onNavigateToCategoria(it._id) },
                     onDelete = {
-                        // Define a categoria a ser excluída e exibe o diálogo de confirmação.
                         categoriaToDelete = it
                         showDeleteDialog = true
                     }
@@ -123,14 +122,12 @@ fun ListarCategoriasScreen(
     }
 }
 
-// Composable que representa uma linha na lista de categorias.
 @Composable
 fun CategoriaRow(
     categoria: Categorias,
     onEdit: (Categorias) -> Unit,
     onDelete: (Categorias) -> Unit
 ) {
-    // Estado para controlar a exibição do menu de opções (editar/excluir).
     var expanded by remember { mutableStateOf(false) }
 
     Card(modifier = Modifier
@@ -141,12 +138,10 @@ fun CategoriaRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Exibe la descripción y el tipo de categoría.
             Column(modifier = Modifier.weight(1f)) {
                 Text(categoria.descricao, fontWeight = FontWeight.SemiBold)
                 Text(categoria.tipo.name, style = MaterialTheme.typography.bodySmall)
             }
-            // Botão de menu com opções de editar e excluir.
             Box {
                 IconButton(onClick = { expanded = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "Mais opções")

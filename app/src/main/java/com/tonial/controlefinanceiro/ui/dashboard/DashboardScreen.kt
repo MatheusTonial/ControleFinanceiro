@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,7 +66,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.absoluteValue
 
-// Tela principal do dashboard, que gerencia o estado e a navegação.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -74,7 +74,6 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel(),
 ) {
-    // Coleta os estados do ViewModel.
     val totalGastoMes by viewModel.totalGastoMes.collectAsState()
     val categoriasMaisGastas by viewModel.categoriasMaisGastas.collectAsState()
     val ultimosLancamentos by viewModel.ultimosLancamentos.collectAsState()
@@ -85,7 +84,6 @@ fun DashboardScreen(
     val lancamentosCount by viewModel.lancamentosCount.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Carrega os dados do dashboard ao iniciar a tela.
     LaunchedEffect(Unit) {
         viewModel.loadDashboardData()
     }
@@ -99,7 +97,13 @@ fun DashboardScreen(
                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         },
         floatingActionButton = {
@@ -127,7 +131,6 @@ fun DashboardScreen(
     }
 }
 
-// Organiza o conteúdo do dashboard, gerenciando o estado do filtro de categoria.
 @Composable
 fun DashboardContent(
     modifier: Modifier = Modifier,
@@ -157,8 +160,6 @@ fun DashboardContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         TotalGastoCard(total = totalGastoMes, lancamentosCount = lancamentosCount)
-        // Linha para os cards de comparativo e projeção.
-        // O height(IntrinsicSize.Min) garante que os cards na Row tenham a mesma altura.
         Row(
             modifier = Modifier.height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -181,7 +182,6 @@ fun DashboardContent(
     }
 }
 
-// Card que exibe o total de gastos do mês.
 @Composable
 fun TotalGastoCard(total: BigDecimal, lancamentosCount: Int) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -190,7 +190,13 @@ fun TotalGastoCard(total: BigDecimal, lancamentosCount: Int) {
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "TOTAL GASTO NO MÊS", style = MaterialTheme.typography.titleMedium)
+                // Alterado para Primary (Laranja) para consistência com o tema Terraform
+                Text(
+                    text = "TOTAL GASTO NO MÊS",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
                 Text(
                     text = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(total),
                     style = MaterialTheme.typography.headlineLarge,
@@ -198,19 +204,18 @@ fun TotalGastoCard(total: BigDecimal, lancamentosCount: Int) {
                     fontWeight = FontWeight.Bold
                 )
             }
-            val lancamentoText = "lanç."//if (lancamentosCount == 1) "\nlançamento" else "\nlançamentos"
+            val lancamentoText = "lanç."
             Text(
                 text = "$lancamentosCount $lancamentoText",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                 modifier = Modifier.align(Alignment.BottomEnd),
-                textAlign = TextAlign.End // Ou TextAlign.Center, dependendo do efeito desejado
+                textAlign = TextAlign.End
             )
         }
     }
 }
 
-// Card para exibir o comparativo com o mês anterior.
 @Composable
 fun ComparativoMesCard(variacao: Double, gastoProporcionalAnterior: BigDecimal) {
     val isPositive = variacao > 0
@@ -218,14 +223,16 @@ fun ComparativoMesCard(variacao: Double, gastoProporcionalAnterior: BigDecimal) 
     val icon = if (isPositive) Icons.Outlined.ArrowUpward else Icons.Outlined.ArrowDownward
     val numberFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
 
-    // O modificador fillMaxHeight garante que o card ocupe toda a altura definida pela Row.
     Card(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
-        // O verticalArrangement.SpaceBetween distribui o conteúdo verticalmente para alinhar com o card ao lado.
         Column(
             modifier = Modifier.padding(16.dp).fillMaxHeight(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = "VS. MÊS ANTERIOR", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "VS. MÊS ANTERIOR",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = icon, contentDescription = "Variação", tint = cor, modifier = Modifier.padding(end = 4.dp))
                 Text(
@@ -238,25 +245,26 @@ fun ComparativoMesCard(variacao: Double, gastoProporcionalAnterior: BigDecimal) 
             Text(
                 text = numberFormat.format(gastoProporcionalAnterior),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
     }
 }
 
-// Card para exibir a projeção de gastos do mês.
 @Composable
 fun ProjecaoGastoCard(projecao: BigDecimal, mediaDiaria: BigDecimal) {
     val numberFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
 
-    // O modificador fillMaxHeight garante que o card ocupe toda a altura definida pela Row.
     Card(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
-        // O verticalArrangement.SpaceBetween distribui o conteúdo verticalmente para alinhar com o card ao lado.
         Column(
             modifier = Modifier.padding(16.dp).fillMaxHeight(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = "PROJEÇÃO MÊS", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "PROJEÇÃO MÊS",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
             Text(
                 text = numberFormat.format(projecao),
                 style = MaterialTheme.typography.headlineSmall,
@@ -265,13 +273,12 @@ fun ProjecaoGastoCard(projecao: BigDecimal, mediaDiaria: BigDecimal) {
             Text(
                 text = "${numberFormat.format(mediaDiaria)} / dia",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
     }
 }
 
-// Carrossel horizontal para as 5 categorias com mais gastos.
 @Composable
 fun CategoriasMaisGastasCarousel(
     categorias: List<CategoriaMaisGasta>,
@@ -279,7 +286,11 @@ fun CategoriasMaisGastasCarousel(
     onCategoriaClick: (String) -> Unit
 ) {
     Column {
-        Text(text = "Top categorias do mês", style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = "Top categorias do mês",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
         LazyRow(
             contentPadding = PaddingValues(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -295,7 +306,6 @@ fun CategoriasMaisGastasCarousel(
     }
 }
 
-// Card individual para cada categoria, agora com estado de seleção e clique.
 @Composable
 fun CategoriaCard(
     categoria: CategoriaMaisGasta,
@@ -320,7 +330,6 @@ fun CategoriaCard(
     }
 }
 
-// Lista vertical com os lançamentos do mes.
 @Composable
 fun UltimosLancamentosList(
     lancamentos: List<UltimoLancamento>,
@@ -328,7 +337,11 @@ fun UltimosLancamentosList(
     onDelete: (UltimoLancamento) -> Unit
 ) {
     Column {
-        Text(text = "Lançamentos do mês", style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = "Lançamentos do mês",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
         LazyColumn(
             contentPadding = PaddingValues(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -340,7 +353,6 @@ fun UltimosLancamentosList(
     }
 }
 
-// Componente para uma única linha da lista de lançamentos.
 @Composable
 fun LancamentoRow(
     lancamento: UltimoLancamento,
@@ -387,7 +399,6 @@ fun LancamentoRow(
     }
 }
 
-// Preview da tela do dashboard para desenvolvimento.
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
@@ -415,7 +426,13 @@ fun DashboardScreenPreview() {
                         IconButton(onClick = {}) {
                             Icon(Icons.Default.Menu, "Menu")
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
             },
             floatingActionButton = {

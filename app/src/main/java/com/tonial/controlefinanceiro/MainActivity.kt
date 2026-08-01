@@ -14,6 +14,9 @@ import com.tonial.controlefinanceiro.ui.theme.ControleFinanceiroTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Ativa o modo Edge-to-Edge padrão. 
+        // A cor da barra de status será controlada pelo SideEffect no Theme.kt
         enableEdgeToEdge()
 
         val startDestination = if (intent?.action == "com.tonial.controlefinanceiro.QUICK_ADD") {
@@ -24,7 +27,6 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ControleFinanceiroTheme {
-                // A Surface garante que o fundo TerraformSurface preencha toda a tela
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.background

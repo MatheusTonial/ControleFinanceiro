@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,10 +70,9 @@ fun TelaLancamentoConta(
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
     lancamentoId: Long? = null,
-    gastoRecorrenteId: Long? = null, // Parâmetro para o ID do gasto recorrente.
+    gastoRecorrenteId: Long? = null,
     isOpenedFromWidget: Boolean = false
 ) {
-    // Efeito para carregar os dados da conta, seja um lançamento existente, um gasto recorrente ou um novo lançamento.
     LaunchedEffect(lancamentoId, gastoRecorrenteId) {
         when {
             lancamentoId != null -> viewModel.loadConta(lancamentoId)
@@ -81,7 +81,6 @@ fun TelaLancamentoConta(
         }
     }
 
-    // Componente de UI desacoplado que recebe estado e callbacks
     TelaLancamentoContaContent(
         modifier = modifier,
         descricao = viewModel.descricao_conta,
@@ -131,7 +130,13 @@ fun TelaLancamentoContaContent(
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     ) { paddingValues ->
@@ -140,26 +145,41 @@ fun TelaLancamentoContaContent(
         var showDatePicker by remember { mutableStateOf(false) }
         var expanded by remember { mutableStateOf(false) }
 
-        // Efeito para solicitar foco no campo de descrição ao entrar na tela, agilizando o lançamento
+        // Definimos cores escuras explícitas para evitar o branco do tema sobre o fundo creme
+        val darkText = MaterialTheme.colorScheme.onSurface
+        val darkLabel = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+
+        val textFieldColors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = darkText,
+            unfocusedTextColor = darkText,
+            disabledTextColor = darkText,
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            unfocusedLabelColor = darkLabel,
+            disabledLabelColor = darkLabel,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            disabledBorderColor = MaterialTheme.colorScheme.outline,
+            unfocusedTrailingIconColor = darkLabel,
+            focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+            disabledTrailingIconColor = darkLabel,
+            unfocusedPlaceholderColor = darkText.copy(alpha = 0.5f)
+        )
+
         LaunchedEffect(Unit) {
             if (!isEditMode && !isFromGastoRecorrente) {
                 descricaoFocusRequester.requestFocus()
             }
         }
 
-        // Texto da categoria selecionada
         var selectedCategoryText by remember(categoriaId, categorias) {
             mutableStateOf(categorias.find { it._id == categoriaId }?.descricao ?: "")
         }
 
-        // Armazena o valor monetário como uma string de dígitos (ex: "12345" para 123,45)
-        // Usamos BigDecimal para evitar problemas de arredondamento com Double (ex: 0.29 * 100 virar 28.999...)
         var valorDigits by remember(valor) {
             val valorEmCentavos = BigDecimal.valueOf(valor).multiply(BigDecimal(100)).toLong()
             mutableStateOf(if (valorEmCentavos == 0L) "" else valorEmCentavos.toString())
         }
 
-        // Diálogo para selecionar a data
         if (showDatePicker) {
             val datePickerState = rememberDatePickerState(
                 initialSelectedDateMillis = data.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -192,7 +212,6 @@ fun TelaLancamentoContaContent(
                 .padding(paddingValues)
                 .padding(8.dp)
         ) {
-            // Campo de texto para a descrição com capitalização automática por palavra
             OutlinedTextField(
                 value = descricao,
                 onValueChange = onDescricaoChange,
@@ -201,12 +220,13 @@ fun TelaLancamentoContaContent(
                     .fillMaxWidth()
                     .focusRequester(descricaoFocusRequester),
                 keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Words, // Define que cada palavra inicia com maiúscula
+                    capitalization = KeyboardCapitalization.Words,
                     imeAction = ImeAction.Next
                 ),
                 keyboardActions = KeyboardActions(
                     onNext = { valorFocusRequester.requestFocus() }
                 ),
+                colors = textFieldColors
             )
             Row(
                 modifier = Modifier
@@ -216,16 +236,12 @@ fun TelaLancamentoContaContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val focusManager = LocalFocusManager.current
-                // Campo de texto para o valor com formatação de moeda
                 OutlinedTextField(
                     value = valorDigits,
                     onValueChange = { newDigits ->
-                        // Permite apenas a entrada de dígitos
                         val filteredDigits = newDigits.filter { it.isDigit() }
-                        // Limita o comprimento para evitar overflow
                         if (filteredDigits.length <= 15) {
                             valorDigits = filteredDigits
-                            // Converte a string de dígitos para Double (ex: "123" -> 1.23)
                             val newValue = filteredDigits.toLongOrNull()?.div(100.0) ?: 0.0
                             onValorChange(newValue)
                         }
@@ -244,12 +260,10 @@ fun TelaLancamentoContaContent(
                             expanded = true
                         }
                     ),
-                    // Aplica a transformação visual para formatar como moeda
                     visualTransformation = CurrencyVisualTransformation(),
-                    // Alinha o texto à direita
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.End)
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.End),
+                    colors = textFieldColors
                 )
-                // Campo de texto para a data (não editável diretamente)
                 OutlinedTextField(
                     value = data.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
                     onValueChange = { },
@@ -258,14 +272,9 @@ fun TelaLancamentoContaContent(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { showDatePicker = true },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledBorderColor = MaterialTheme.colorScheme.outline,
-                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    colors = textFieldColors
                 )
             }
-            // Menu dropdown para selecionar a categoria
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },
@@ -280,7 +289,7 @@ fun TelaLancamentoContaContent(
                     modifier = Modifier
                         .menuAnchor()
                         .fillMaxWidth(),
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                    colors = textFieldColors
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
@@ -288,7 +297,7 @@ fun TelaLancamentoContaContent(
                 ) {
                     categorias.forEach { categoria ->
                         DropdownMenuItem(
-                            text = { Text(categoria.descricao) },
+                            text = { Text(categoria.descricao, color = darkText) },
                             onClick = {
                                 onCategoriaIdChange(categoria._id)
                                 selectedCategoryText = categoria.descricao
@@ -307,9 +316,9 @@ fun TelaLancamentoContaContent(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 if (isFromGastoRecorrente) {
-                    Text("Este é um lançamento de uma conta recorrente.")
+                    Text("Este é um lançamento de uma conta recorrente.", color = darkText)
                 } else {
-                    Text("Lançamento único")
+                    Text("Lançamento único", color = darkText)
                     Switch(
                         checked = lancamentoUnico,
                         onCheckedChange = onLancamentoUnicoChange
@@ -317,7 +326,6 @@ fun TelaLancamentoContaContent(
                 }
             }
 
-            // Botão para salvar
             Button(
                 onClick = onSaveClick,
                 modifier = Modifier
@@ -330,23 +338,14 @@ fun TelaLancamentoContaContent(
     }
 }
 
-// Classe para a transformação visual da moeda
 private class CurrencyVisualTransformation : VisualTransformation {
-    // Formato de moeda para o Brasil (R$)
     private val currencyFormat = DecimalFormat.getCurrencyInstance(Locale("pt", "BR"))
 
     override fun filter(text: AnnotatedString): TransformedText {
-        // Pega a string de dígitos crus (ex: "12345")
         val digits = text.text
-
-        // Converte para BigDecimal (ex: 123.45)
         val value = digits.toBigDecimalOrNull()?.divide(BigDecimal(100)) ?: BigDecimal.ZERO
-
-        // Formata o valor como moeda (ex: "R$ 123,45")
         val formattedText = currencyFormat.format(value)
 
-        // Mapeamento de offset para manter o cursor sempre no final.
-        // Essencial para a entrada de valores da direita para a esquerda.
         val offsetMapping = object : OffsetMapping {
             override fun originalToTransformed(offset: Int): Int {
                 return formattedText.length
@@ -364,7 +363,6 @@ private class CurrencyVisualTransformation : VisualTransformation {
 @Preview(showBackground = true)
 @Composable
 fun TelaLancamentoContaPreview() {
-    // Lista de categorias de exemplo
     val mockCategorias = listOf(
         Categorias(1, "Mercado", TipoCategoria.Perda, 0),
         Categorias(2, "Alimentação", TipoCategoria.Perda, 1),
@@ -372,7 +370,6 @@ fun TelaLancamentoContaPreview() {
     )
 
     ControleFinanceiroTheme {
-        // Usa o componente de UI desacoplado com dados de exemplo
         TelaLancamentoContaContent(
             descricao = "Compra de teste",
             onDescricaoChange = {},

@@ -36,18 +36,15 @@ private val TerraformColorScheme = lightColorScheme(
     surface = TerraformSurface,
     onSurface = TerraformOnSurface,
     
-    // Mapeamos surfaceVariant para Tertiary para que cards herdem o marrom por padrão
     surfaceVariant = TerraformTertiary,
     onSurfaceVariant = Color.White,
     
-    // Mapeamos containers para evitar o violeta padrão do M3
     surfaceContainer = TerraformSurface,
     surfaceContainerLow = TerraformSurface,
     surfaceContainerLowest = TerraformSurface,
     surfaceContainerHigh = Color(0xFFF2F2D7),
     surfaceContainerHighest = Color(0xFFE7E7D0),
     
-    // Remove a "tinta" violeta automática
     surfaceTint = Color.Transparent,
     
     outline = TerraformTertiary,
@@ -70,9 +67,12 @@ fun ControleFinanceiroTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            
+            // Define a cor da barra de status como TerraformPrimary
             window.statusBarColor = TerraformPrimary.toArgb()
-            // Define ícones brancos (false) ou pretos (true) baseado no tema
-            // Como TerraformPrimary é escuro/vibrante, ícones brancos (false) costumam ser melhores
+            
+            // Configura os ícones da barra de status para serem brancos (false)
+            // Já que o laranja TerraformPrimary é escuro, ícones brancos oferecem melhor contraste.
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }
     }

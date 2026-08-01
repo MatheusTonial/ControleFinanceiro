@@ -31,10 +31,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,7 +67,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-// Composable principal para a tela de Histórico.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoricoScreen(
@@ -74,31 +75,25 @@ fun HistoricoScreen(
     modifier: Modifier = Modifier,
     viewModel: HistoricoViewModel = viewModel(),
 ) {
-    // Coleta os estados do ViewModel.
     val historico by viewModel.historico.collectAsState()
     val categorias by viewModel.categorias.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Estados para os filtros da tela.
     var dataInicio by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
     var dataFim by remember { mutableStateOf(LocalDate.now()) }
     var selectedCategoria by remember { mutableStateOf<Categorias?>(null) }
 
-    // Estados para o diálogo de exclusão.
     var showDeleteDialog by remember { mutableStateOf(false) }
     var lancamentoToDelete by remember { mutableStateOf<UltimoLancamento?>(null) }
 
-    // Carrega as categorias ao iniciar a tela.
     LaunchedEffect(Unit) {
         viewModel.loadCategorias()
     }
 
-    // Recarrega o histórico sempre que um filtro é alterado.
     LaunchedEffect(dataInicio, dataFim, selectedCategoria) {
         viewModel.loadHistorico(dataInicio, dataFim, selectedCategoria?._id)
     }
 
-    // Diálogo de confirmação para exclusão de lançamento.
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -122,7 +117,6 @@ fun HistoricoScreen(
         )
     }
 
-    // Estrutura principal da tela.
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -132,11 +126,16 @@ fun HistoricoScreen(
                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     ) { paddingValues ->
-        // O conteúdo da tela agora é diretamente renderizado dentro do Scaffold.
         HistoricoContent(
             modifier = Modifier.padding(paddingValues),
             historico = historico,
@@ -156,7 +155,6 @@ fun HistoricoScreen(
     }
 }
 
-// Composable para o conteúdo principal da tela, incluindo filtros e a lista.
 @Composable
 fun HistoricoContent(
     modifier: Modifier = Modifier,
@@ -175,7 +173,6 @@ fun HistoricoContent(
         modifier = modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // O histórico é passado para os filtros para que o totalizador possa ser calculado.
         Filtros(
             historico = historico,
             categorias = categorias,
@@ -194,13 +191,11 @@ fun HistoricoContent(
     }
 }
 
-// Composable para o card que exibe o saldo do período filtrado. Agora é mais compacto.
 @Composable
 fun TotalizadorHistorico(
     historico: List<UltimoLancamento>,
     modifier: Modifier = Modifier
 ) {
-    // Calcula o saldo total (ganhos - perdas) dos lançamentos na lista.
     val total = historico.fold(BigDecimal.ZERO) { acc, lancamento ->
         if (lancamento.tipo == TipoCategoria.Ganho.name) {
             acc + lancamento.valor
@@ -209,14 +204,11 @@ fun TotalizadorHistorico(
         }
     }
 
-    // Formata o valor total como moeda brasileira.
     val numberFormat = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
     val valorFormatado = numberFormat.format(total)
 
-    // Determina a cor do texto com base se o valor é positivo ou negativo.
     val cor = if (total >= BigDecimal.ZERO) Color(0xFF388E3C) else MaterialTheme.colorScheme.error
 
-    // Card para exibir o totalizador. O padding e a elevação foram reduzidos.
     Card(
         modifier = modifier,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -233,7 +225,6 @@ fun TotalizadorHistorico(
     }
 }
 
-// Composable que agrupa os componentes de filtro.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Filtros(
@@ -251,10 +242,18 @@ fun Filtros(
     val showDatePickerInicio = remember { mutableStateOf(false) }
     val showDatePickerFim = remember { mutableStateOf(false) }
 
-    // Agrupa todos os filtros em uma única coluna.
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Cores personalizadas para evitar texto branco sobre fundo creme
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        focusedLabelColor = MaterialTheme.colorScheme.primary,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+        unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    )
 
-        // Linha 1: Campos de texto para seleção de data de início e fim.
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = dataInicio.format(formatter),
@@ -266,7 +265,8 @@ fun Filtros(
                         Icon(Icons.Default.DateRange, contentDescription = "Data Início")
                     }
                 },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                colors = textFieldColors
             )
             Spacer(modifier = Modifier.width(8.dp))
             OutlinedTextField(
@@ -279,11 +279,11 @@ fun Filtros(
                         Icon(Icons.Default.DateRange, contentDescription = "Data Fim")
                     }
                 },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                colors = textFieldColors
             )
         }
 
-        // Diálogo para selecionar a data de início.
         if (showDatePickerInicio.value) {
             val datePickerState = rememberDatePickerState(
                 initialSelectedDateMillis = dataInicio.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
@@ -309,7 +309,6 @@ fun Filtros(
             }
         }
 
-        // Diálogo para selecionar a data de fim.
         if (showDatePickerFim.value) {
             val datePickerState = rememberDatePickerState(
                 initialSelectedDateMillis = dataFim.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
@@ -335,18 +334,15 @@ fun Filtros(
             }
         }
 
-        // Linha 2: Saldo do período e filtro de categoria lado a lado.
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Coluna da esquerda: Totalizador do saldo. O peso foi ajustado para 1, dando menos espaço.
             Box(modifier = Modifier.weight(1f)) {
                 TotalizadorHistorico(historico = historico, modifier = Modifier.fillMaxWidth())
             }
 
-            // Coluna da direita: Menu dropdown para selecionar a categoria. O peso foi ajustado para 1.5, dando mais espaço.
             Box(modifier = Modifier.weight(1.5f)) {
                 var expanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(
@@ -359,14 +355,15 @@ fun Filtros(
                         readOnly = true,
                         label = { Text("Categoria") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = textFieldColors
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Todas as categorias") },
+                            text = { Text("Todas as categorias", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = {
                                 onCategoriaChange(null)
                                 expanded = false
@@ -374,7 +371,7 @@ fun Filtros(
                         )
                         categorias.forEach { categoria ->
                             DropdownMenuItem(
-                                text = { Text(categoria.descricao) },
+                                text = { Text(categoria.descricao, color = MaterialTheme.colorScheme.onSurface) },
                                 onClick = {
                                     onCategoriaChange(categoria)
                                     expanded = false
@@ -386,7 +383,6 @@ fun Filtros(
             }
         }
 
-        // Linha 3: Botões para filtros rápidos de período.
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -428,7 +424,6 @@ fun Filtros(
     }
 }
 
-// Preview da tela para desenvolvimento.
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
@@ -449,7 +444,13 @@ fun HistoricoScreenPreview() {
                         IconButton(onClick = { }) {
                             Icon(Icons.Default.Menu, "Menu")
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
             }
         ) { paddingValues ->

@@ -1,20 +1,8 @@
 package com.tonial.controlefinanceiro.widget
 
 import android.content.Context
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -51,7 +39,6 @@ class TotalGastoWidget : GlanceAppWidget() {
         val total = dbHandler.getTotalGastoMesAtual()
         val count = dbHandler.getLancamentosCountMesAtual()
         
-        // Lógica de cores baseada no DashboardViewModel para definir se houve aumento de gastos.
         val gastosUnicosMes = dbHandler.getTotalGastoUnicosMesAtual()
         val totalGastoMesAnterior = dbHandler.getTotalGastoMesAnterior()
         
@@ -62,7 +49,6 @@ class TotalGastoWidget : GlanceAppWidget() {
         
         var isAumento = false
         
-        // Compara os gastos atuais (descontando os únicos) com o gasto proporcional do mês passado.
         if (diasNoMesAnterior > 0 && totalGastoMesAnterior > BigDecimal.ZERO) {
             val mediaDiariaMesAnterior = totalGastoMesAnterior.divide(BigDecimal(diasNoMesAnterior), 2, RoundingMode.HALF_UP)
             val gastoProporcional = mediaDiariaMesAnterior.multiply(BigDecimal(diaAtual))
@@ -86,22 +72,23 @@ class TotalGastoWidget : GlanceAppWidget() {
 }
 
 /**
- * Conteúdo do widget com a lógica de cores aplicada ao valor total.
+ * Conteúdo do widget com a cor Laranja (Primary) aplicada aos rótulos para destaque.
  */
 @Composable
 fun WidgetContent(total: BigDecimal, count: Int, isAumento: Boolean) {
     val ptBr = Locale.forLanguageTag("pt-BR")
     val currencyFormat = NumberFormat.getCurrencyInstance(ptBr)
     
-    // Define a cor: vermelho para aumento de gastos, verde para economia.
-    // Usando ColorProvider com resId para evitar erro de visibilidade do Glance
+    // Cor do valor: vermelho para aumento, verde para economia
     val valorColor = if (isAumento) ColorProvider(R.color.red_gasto) else ColorProvider(R.color.green_gasto)
     
+    // Cor Laranja (TerraformPrimary) para os títulos do widget, combinando com o destaque do app.
+    val labelColor = ColorProvider(R.color.terraform_primary)
+
     GlanceBox(
         modifier = GlanceModifier
             .glanceFillMaxSize()
             .clickable(actionStartActivity<MainActivity>())
-            // Mantém o drawable de fundo para garantir bordas arredondadas no Android 10.
             .background(ImageProvider(R.drawable.widget_background))
             .glancePadding(12.dp),
         contentAlignment = GlanceAlignment.Center
@@ -114,7 +101,8 @@ fun WidgetContent(total: BigDecimal, count: Int, isAumento: Boolean) {
                 text = "TOTAL GASTO NO MÊS",
                 style = GlanceTextStyle(
                     fontSize = 11.sp,
-                    color = GlanceTheme.colors.onSurfaceVariant
+                    color = labelColor,
+                    fontWeight = GlanceFontWeight.Bold
                 )
             )
             GlanceText(
@@ -135,59 +123,10 @@ fun WidgetContent(total: BigDecimal, count: Int, isAumento: Boolean) {
                 text = "$count lanç.",
                 style = GlanceTextStyle(
                     fontSize = 9.sp,
-                    color = GlanceTheme.colors.onSurfaceVariant
+                    color = labelColor,
+                    fontWeight = GlanceFontWeight.Medium
                 )
             )
-        }
-    }
-}
-
-@Preview(widthDp = 200, heightDp = 100)
-@Composable
-fun WidgetContentPreview() {
-    val total = BigDecimal("123.45")
-    val count = 5
-    val ptBr = Locale.forLanguageTag("pt-BR")
-    val currencyFormat = NumberFormat.getCurrencyInstance(ptBr)
-    val isAumento = true
-
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.padding(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "TOTAL GASTO NO MÊS",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = currencyFormat.format(total),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isAumento) MaterialTheme.colorScheme.error else Color(0xFF388E3C)
-                )
-            }
-            
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.BottomEnd
-            ) {
-                Text(
-                    text = "$count lanç.",
-                    fontSize = 9.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }

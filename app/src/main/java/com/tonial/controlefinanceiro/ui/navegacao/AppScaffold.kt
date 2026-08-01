@@ -314,7 +314,7 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                             addCategory(Intent.CATEGORY_OPENABLE)
                             type = "application/octet-stream"
-                            putExtra(Intent.EXTRA_TITLE, "backup.sqlite")
+                            putExtra(Intent.EXTRA_TITLE, LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")) + "_backup.sqlite")
                         }
                         backupLauncher.launch(intent)
                         scope.launch { drawerState.close() }
