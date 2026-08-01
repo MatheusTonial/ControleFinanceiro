@@ -1,37 +1,57 @@
 package com.tonial.controlefinanceiro.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-
-// O Tema Terraform é definido por uma paleta clara e orgânica (creme).
-// Para manter a identidade visual consistente mesmo se o sistema estiver em modo escuro,
-// definimos ambos os esquemas com a cor de fundo TerraformSurface.
+import androidx.core.view.WindowCompat
 
 private val TerraformColorScheme = lightColorScheme(
-    primary = TerraformPrimary,
-    secondary = TerraformSecondary,
-    tertiary = TerraformTertiary,
-    background = TerraformSurface,
-    surface = TerraformSurface,
+    primary = TerraformPrimary,      // #BD4B00 (Laranja Ativo)
     onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFDBCF),
+    onPrimaryContainer = TerraformPrimary,
+
+    secondary = TerraformSecondary,  // #3E2723 (Marrom Escuro - Base Sólida)
     onSecondary = Color.White,
+    secondaryContainer = Color(0xFFD7CCC8), // Marrom pálido para seleções
+    onSecondaryContainer = TerraformSecondary,
+
+    tertiary = TerraformTertiary,    // #8D6E63 (Marrom Terroso - Cards)
     onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFF5EBE8),
+    onTertiaryContainer = TerraformTertiary,
+
+    background = TerraformSurface,   // #FBFBE2 (Creme Orgânico - Fundo Principal)
     onBackground = TerraformOnSurface,
+    
+    surface = TerraformSurface,
     onSurface = TerraformOnSurface,
-    surfaceVariant = Color(0xFFE7E7D0), // Um tom levemente mais escuro que o creme para variantes
-    onSurfaceVariant = TerraformOnSurface
+    
+    // Mapeamos surfaceVariant para Tertiary para que cards herdem o marrom por padrão
+    surfaceVariant = TerraformTertiary,
+    onSurfaceVariant = Color.White,
+    
+    // Mapeamos containers para evitar o violeta padrão do M3
+    surfaceContainer = TerraformSurface,
+    surfaceContainerLow = TerraformSurface,
+    surfaceContainerLowest = TerraformSurface,
+    surfaceContainerHigh = Color(0xFFF2F2D7),
+    surfaceContainerHighest = Color(0xFFE7E7D0),
+    
+    // Remove a "tinta" violeta automática
+    surfaceTint = Color.Transparent,
+    
+    outline = TerraformTertiary,
+    outlineVariant = TerraformMusgo
 )
 
 val TerraformShapes = Shapes(
@@ -43,22 +63,22 @@ val TerraformShapes = Shapes(
 @Composable
 fun ControleFinanceiroTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Desativamos cores dinâmicas para preservar a identidade Terraform
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    // Ignoramos a preferência de 'darkTheme' do sistema para o fundo, 
-    // pois a Identidade Terraform exige o fundo creme (#FBFBE2).
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = TerraformPrimary.toArgb()
+            // Define ícones brancos (false) ou pretos (true) baseado no tema
+            // Como TerraformPrimary é escuro/vibrante, ícones brancos (false) costumam ser melhores
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }
-        else -> TerraformColorScheme
     }
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = TerraformColorScheme,
         typography = Typography,
         shapes = TerraformShapes,
         content = content

@@ -7,13 +7,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -24,7 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -46,6 +51,7 @@ import com.tonial.controlefinanceiro.ui.telas.SobreScreen
 import com.tonial.controlefinanceiro.ui.telas.TelaCategoria
 import com.tonial.controlefinanceiro.ui.telas.TelaContaRecorrente
 import com.tonial.controlefinanceiro.ui.telas.TelaLancamentoConta
+import com.tonial.controlefinanceiro.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -187,14 +193,31 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
         drawerState = drawerState,
         gesturesEnabled = !isSplashScreen,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(
+                drawerContainerColor = TerraformSecondary, // Marrom Escuro
+                drawerContentColor = Color.White,
+                drawerTonalElevation = 0.dp
+            ) {
+                Spacer(Modifier.padding(12.dp))
+                
+                val itemColors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = TerraformPrimary, // Laranja Ativo
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color.White,
+                    unselectedContainerColor = Color.Transparent,
+                    unselectedIconColor = Color.White.copy(alpha = 0.7f),
+                    unselectedTextColor = Color.White.copy(alpha = 0.7f)
+                )
+
                 NavigationDrawerItem(
                     label = { Text(text = "📈 Dashboard") },
                     selected = currentRoute == Routes.DASHBOARD,
                     onClick = {
                         navController.navigate(Routes.DASHBOARD) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "📆 Histórico de lançamentos") },
@@ -202,7 +225,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onClick = {
                         navController.navigate(Routes.HISTORICO) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "➕ Lançamento de Conta") },
@@ -210,7 +235,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onClick = {
                         navController.navigate(Routes.LANCAMENTO_CONTA) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "📃 Cadastro de Categoria") },
@@ -218,7 +245,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onClick = {
                         navController.navigate(Routes.CADASTRO_CATEGORIA) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "📃 Lista de Categoria") },
@@ -226,7 +255,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onClick = {
                         navController.navigate(Routes.LISTA_CATEGORIA) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "🕐 Cadastro de Conta Recorrente") },
@@ -234,7 +265,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onClick = {
                         navController.navigate(Routes.CONTA_RECORRENTE) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "🕐 Lista de Contas Recorrentes") },
@@ -242,7 +275,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onClick = {
                         navController.navigate(Routes.LISTA_CONTA_RECORRENTE) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 Spacer(Modifier.weight(1f))
                  NavigationDrawerItem(
@@ -251,7 +286,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onClick = {
                         navController.navigate(Routes.SOBRE) { launchSingleTop = true }
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
                     label = { Text(text = "📥 Importar Banco de Dados") },
@@ -259,7 +296,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     onClick = {
                         restoreLauncher.launch(arrayOf("application/octet-stream"))
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
                     label = {
@@ -279,7 +318,9 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                         }
                         backupLauncher.launch(intent)
                         scope.launch { drawerState.close() }
-                    }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }
         }
