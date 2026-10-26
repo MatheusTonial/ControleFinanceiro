@@ -48,7 +48,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -58,6 +57,7 @@ import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
 import com.tonial.controlefinanceiro.ui.dashboard.LancamentoRow
 import com.tonial.controlefinanceiro.ui.theme.ControleFinanceiroTheme
+import com.tonial.controlefinanceiro.ui.theme.TerraformGreenGasto
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.text.NumberFormat
@@ -207,7 +207,7 @@ fun TotalizadorHistorico(
     val numberFormat = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
     val valorFormatado = numberFormat.format(total)
 
-    val cor = if (total >= BigDecimal.ZERO) Color(0xFF388E3C) else MaterialTheme.colorScheme.error
+    val cor = if (total >= BigDecimal.ZERO) TerraformGreenGasto else MaterialTheme.colorScheme.error
 
     Card(
         modifier = modifier,

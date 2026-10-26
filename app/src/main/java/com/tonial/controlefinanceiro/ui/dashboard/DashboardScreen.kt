@@ -47,7 +47,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -58,6 +57,7 @@ import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
 import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
 import com.tonial.controlefinanceiro.ui.theme.ControleFinanceiroTheme
+import com.tonial.controlefinanceiro.ui.theme.TerraformGreenGasto
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.text.NumberFormat
@@ -219,7 +219,7 @@ fun TotalGastoCard(total: BigDecimal, lancamentosCount: Int) {
 @Composable
 fun ComparativoMesCard(variacao: Double, gastoProporcionalAnterior: BigDecimal) {
     val isPositive = variacao > 0
-    val cor = if (isPositive) MaterialTheme.colorScheme.error else Color(0xFF388E3C)
+    val cor = if (isPositive) MaterialTheme.colorScheme.error else TerraformGreenGasto
     val icon = if (isPositive) Icons.Outlined.ArrowUpward else Icons.Outlined.ArrowDownward
     val numberFormat = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
 
@@ -378,7 +378,7 @@ fun LancamentoRow(
             }
 
             val isPerda = lancamento.tipo == TipoCategoria.Perda.name
-            val cor = if (isPerda) MaterialTheme.colorScheme.error else Color(0xFF388E3C)
+            val cor = if (isPerda) MaterialTheme.colorScheme.error else TerraformGreenGasto
             val numberFormat = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
             val valorFormatado = numberFormat.format(lancamento.valor)
             val textoValor = if (isPerda) "- $valorFormatado" else "+ $valorFormatado"

@@ -45,6 +45,7 @@ import com.tonial.controlefinanceiro.model.ListaContasRecorrentesViewModel
 import com.tonial.controlefinanceiro.ui.dashboard.DashboardScreen
 import com.tonial.controlefinanceiro.ui.historico.HistoricoScreen
 import com.tonial.controlefinanceiro.ui.splash.SplashScreen
+import com.tonial.controlefinanceiro.ui.telas.ConfiguracoesScreen
 import com.tonial.controlefinanceiro.ui.telas.ListarCategoriasScreen
 import com.tonial.controlefinanceiro.ui.telas.ListarContasRecorrentesScreen
 import com.tonial.controlefinanceiro.ui.telas.SobreScreen
@@ -70,11 +71,16 @@ object Routes {
     const val CONTA_RECORRENTE = "conta_recorrente"
     const val LISTA_CONTA_RECORRENTE = "lista_conta_recorrente"
     const val SOBRE = "sobre"
+    const val CONFIGURACOES = "configuracoes"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppScaffold(startDestination: String = Routes.SPLASH) {
+fun AppScaffold(
+    startDestination: String = Routes.SPLASH,
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChange: (ThemeMode) -> Unit = {}
+) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -194,19 +200,19 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
         gesturesEnabled = !isSplashScreen,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = TerraformSecondary, // Marrom Escuro
-                drawerContentColor = Color.White,
+                drawerContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                drawerContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 drawerTonalElevation = 0.dp
             ) {
                 Spacer(Modifier.padding(12.dp))
-                
+
                 val itemColors = NavigationDrawerItemDefaults.colors(
-                    selectedContainerColor = TerraformPrimary, // Laranja Ativo
-                    selectedIconColor = Color.White,
-                    selectedTextColor = Color.White,
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedTextColor = MaterialTheme.colorScheme.onPrimary,
                     unselectedContainerColor = Color.Transparent,
-                    unselectedIconColor = Color.White.copy(alpha = 0.7f),
-                    unselectedTextColor = Color.White.copy(alpha = 0.7f)
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
 
                 NavigationDrawerItem(
@@ -280,6 +286,16 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 Spacer(Modifier.weight(1f))
+                 NavigationDrawerItem(
+                    label = { Text(text = "⚙️ Configurações") },
+                    selected = currentRoute == Routes.CONFIGURACOES,
+                    onClick = {
+                        navController.navigate(Routes.CONFIGURACOES) { launchSingleTop = true }
+                        scope.launch { drawerState.close() }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
                  NavigationDrawerItem(
                     label = { Text(text = "ℹ️ Sobre") },
                     selected = currentRoute == Routes.SOBRE,
@@ -488,6 +504,13 @@ fun AppScaffold(startDestination: String = Routes.SPLASH) {
             }
             composable(Routes.SOBRE) {
                 SobreScreen(drawerState = drawerState)
+            }
+            composable(Routes.CONFIGURACOES) {
+                ConfiguracoesScreen(
+                    drawerState = drawerState,
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange
+                )
             }
         }
     }

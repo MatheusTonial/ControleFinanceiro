@@ -100,6 +100,9 @@ fun SobreScreen(drawerState: DrawerState) {
                     Text("Notas de Versão:", style = MaterialTheme.typography.titleMedium)
                 }
                 item {
+                    Text("v8.1 - Padronização do tema Terraform em todo o app e novo seletor de tema Claro/Escuro/Sistema nas Configurações.", modifier = Modifier.padding(vertical = 4.dp))
+                }
+                item {
                     Text("v8.0 - Novo widget com card do total gasto no mes atual. Cores baseadas no comparativo com o mês anterior.", modifier = Modifier.padding(vertical = 4.dp))
                 }
                 item {

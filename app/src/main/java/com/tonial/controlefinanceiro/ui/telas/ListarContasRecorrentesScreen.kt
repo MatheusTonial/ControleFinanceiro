@@ -36,8 +36,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.tonial.controlefinanceiro.ui.theme.TerraformStatusAtual
+import com.tonial.controlefinanceiro.ui.theme.TerraformStatusFuturo
+import com.tonial.controlefinanceiro.ui.theme.TerraformStatusVencido
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -112,15 +114,13 @@ fun ListarContasRecorrentesScreen(
                 val dataConta = conta.data
                 val borderColor = when {
                     // Meses futuros: borda verde.
-                    dataConta.year > hoje.year || (dataConta.year == hoje.year && dataConta.monthValue > hoje.monthValue) -> Color(
-                        0xFF7AB77E
-                    ) // Verde
+                    dataConta.year > hoje.year || (dataConta.year == hoje.year && dataConta.monthValue > hoje.monthValue) ->
+                        TerraformStatusFuturo
                     // Mês atual: borda amarela.
-                    dataConta.year == hoje.year && dataConta.monthValue == hoje.monthValue -> Color(
-                        0xFFF1E372
-                    ) // Amarelo
+                    dataConta.year == hoje.year && dataConta.monthValue == hoje.monthValue ->
+                        TerraformStatusAtual
                     // Meses passados: borda vermelha.
-                    else -> Color(0xFFC03A2E) // Vermelho
+                    else -> TerraformStatusVencido
                 }
 
                 Card(
