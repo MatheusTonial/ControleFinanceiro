@@ -75,10 +75,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             val mesAnterior = hoje.minusMonths(1)
             val diasNoMesAnterior = mesAnterior.lengthOfMonth()
             val diaAtual = hoje.dayOfMonth
-            // Obtém o número total de dias no mês atual.
-            val diasNoMesAtual = hoje.lengthOfMonth()
-            // Calcula quantos dias faltam para o final do mês.
-            val diasRestantes = diasNoMesAtual - diaAtual
 
             // Calcula o comparativo com o mês anterior, ignora os gastos unicos de ambos os meses
             val totalGastoMesAnterior = dbHandler.getTotalGastoMesAnterior()
@@ -102,22 +98,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             // Calcula a projeção de gastos para o final do mês atual.
-            if (diaAtual > 0 && _totalGastoMes.value  > BigDecimal.ZERO) {
-                val mediaDiariaAtual = _gastosNormaisMes.value.divide(BigDecimal(diaAtual), 2, RoundingMode.HALF_UP)
-                _mediaDiariaAtual.value = mediaDiariaAtual
-                val mediaRestoMes = mediaDiariaAtual.multiply(BigDecimal(diasRestantes))
-                val projecao = _totalGastoMes.value  + mediaRestoMes + _gastosTabelaRecorrentesMes.value
-                _projecaoGastoMes.value = projecao
-            } else {
-                _projecaoGastoMes.value = BigDecimal.ZERO
-                _mediaDiariaAtual.value = BigDecimal.ZERO
-            }
-            /*
-                projecao =
-                ( média_diária_gastos_normais × dias_restantes )
-                + recorrentes_restantes_do_mês
-                + gastos_ja_feitos
-            */
+            val projecaoMes = calcularProjecaoMes(_totalGastoMes.value, _gastosNormaisMes.value, _gastosTabelaRecorrentesMes.value, hoje)
+            _mediaDiariaAtual.value = projecaoMes.mediaDiaria
+            _projecaoGastoMes.value = projecaoMes.projecao
         }
     }
 

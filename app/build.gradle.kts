@@ -14,8 +14,8 @@ android {
         applicationId = "com.tonial.controlefinanceiro"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "8.1"
+        versionCode = 10
+        versionName = "9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -65,6 +65,9 @@ dependencies {
     
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
+
+    // Vico para gráficos
+    implementation(libs.vico.compose.m3)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

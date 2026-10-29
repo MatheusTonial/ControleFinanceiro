@@ -1,6 +1,7 @@
 package com.tonial.controlefinanceiro.entity
 
 import java.math.BigDecimal
+import java.time.YearMonth
 
 data class CategoriaMaisGasta(
     val categoria: String,
@@ -15,4 +16,9 @@ data class UltimoLancamento(
     val valor: BigDecimal,
     val data: String,
     val tipo: String
+)
+
+data class GastoMensal(
+    val mes: YearMonth,
+    val total: BigDecimal
 )

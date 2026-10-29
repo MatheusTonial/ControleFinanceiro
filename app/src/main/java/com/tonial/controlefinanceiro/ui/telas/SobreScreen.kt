@@ -100,6 +100,9 @@ fun SobreScreen(drawerState: DrawerState) {
                     Text("Notas de Versão:", style = MaterialTheme.typography.titleMedium)
                 }
                 item {
+                    Text("v9.0 - Nova tela de Análise com gráficos: gasto por categoria, evolução mensal e gasto acumulado no mês com projeção. Filtro por categoria e valores ao tocar no gráfico.", modifier = Modifier.padding(vertical = 4.dp))
+                }
+                item {
                     Text("v8.1 - Padronização do tema Terraform em todo o app e novo seletor de tema Claro/Escuro/Sistema nas Configurações.", modifier = Modifier.padding(vertical = 4.dp))
                 }
                 item {

@@ -8,9 +8,11 @@ import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.entity.Contas
 import com.tonial.controlefinanceiro.entity.TipoCategoria
 import com.tonial.controlefinanceiro.entity.CategoriaMaisGasta
+import com.tonial.controlefinanceiro.entity.GastoMensal
 import com.tonial.controlefinanceiro.entity.UltimoLancamento
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.YearMonth
 
 // Classe de acesso ao banco de dados SQLite do aplicativo.
 class DatabaseHandler private constructor(context: Context) : 
@@ -375,15 +377,20 @@ class DatabaseHandler private constructor(context: Context) :
         return conta
     }
 
+    // Filtro opcional de categoria para as queries de totais (categoriaId é Long, então pode ser interpolado com segurança).
+    private fun filtroCategoria(categoriaId: Long?): String =
+        if (categoriaId != null) "AND T1.$KEY_ID_CATEGORIA = $categoriaId" else ""
+
     // Retorna o total de gastos no mês atual.
-    fun getTotalGastoMesAtual(): BigDecimal {
+    fun getTotalGastoMesAtual(categoriaId: Long? = null): BigDecimal {
         val db = this.readableDatabase
         val query = """
             SELECT SUM(T2.$KEY_VALOR_CONTA)
             FROM $TABLE_CATEGORIAS T1
             INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
-            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now') 
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
+            ${filtroCategoria(categoriaId)}
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
@@ -418,7 +425,7 @@ class DatabaseHandler private constructor(context: Context) :
     }
 
     // Retorna o total de gastos recorrentes no mês atual.
-    fun getTotalGastoRecorrenteMesAtual(): BigDecimal {
+    fun getTotalGastoRecorrenteMesAtual(categoriaId: Long? = null): BigDecimal {
         val db = this.readableDatabase
         val query = """
             SELECT SUM(T2.$KEY_VALOR_CONTA)
@@ -427,6 +434,7 @@ class DatabaseHandler private constructor(context: Context) :
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
             AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
             AND T2.$KEY_TIPO_LANCAMENTO == '$TIPO_LANCAMENTO_RECORRENTE'
+            ${filtroCategoria(categoriaId)}
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
@@ -438,7 +446,7 @@ class DatabaseHandler private constructor(context: Context) :
     }
 
     // Retorna o total de gastos unicos no mês atual.
-    fun getTotalGastoUnicosMesAtual(): BigDecimal {
+    fun getTotalGastoUnicosMesAtual(categoriaId: Long? = null): BigDecimal {
         val db = this.readableDatabase
         val query = """
             SELECT SUM(T2.$KEY_VALOR_CONTA)
@@ -447,6 +455,7 @@ class DatabaseHandler private constructor(context: Context) :
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
             AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
             AND T2.$KEY_TIPO_LANCAMENTO == '$TIPO_LANCAMENTO_UNICO'
+            ${filtroCategoria(categoriaId)}
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
@@ -458,14 +467,15 @@ class DatabaseHandler private constructor(context: Context) :
     }
 
     // Retorna o total de gastos no mês atual, desconsiderando as variaveis .
-    fun getTotalTabelaRecorrenteMesAtual(): BigDecimal {
+    fun getTotalTabelaRecorrenteMesAtual(categoriaId: Long? = null): BigDecimal {
         val db = this.readableDatabase
         val query = """
             SELECT SUM(T2.$KEY_VALOR_CONTA)
             FROM $TABLE_CATEGORIAS T1
             INNER JOIN $TABLE_GASTOS_RECORRENTES T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
             WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
-            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now') 
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = strftime('%Y-%m', 'now')
+            ${filtroCategoria(categoriaId)}
         """
         var total = BigDecimal.ZERO
         db.rawQuery(query, null).use { cursor ->
@@ -514,6 +524,78 @@ class DatabaseHandler private constructor(context: Context) :
             }
         }
         return categorias
+    }
+
+    // Retorna o total de gastos de cada um dos últimos [meses] meses (incluindo o atual), em ordem cronológica.
+    // Meses sem lançamentos entram com total zero.
+    fun getTotaisPorMes(meses: Int, categoriaId: Long? = null): List<GastoMensal> {
+        val mesAtual = YearMonth.now()
+        val mesInicial = mesAtual.minusMonths((meses - 1).toLong())
+        val totais = mutableMapOf<String, BigDecimal>()
+        val db = this.readableDatabase
+        val query = """
+            SELECT strftime('%Y-%m', T2.$KEY_DATA_CONTA) AS mes, SUM(T2.$KEY_VALOR_CONTA) AS total
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) BETWEEN ? AND ?
+            ${filtroCategoria(categoriaId)}
+            GROUP BY mes
+        """
+        db.rawQuery(query, arrayOf(mesInicial.toString(), mesAtual.toString())).use { cursor ->
+            while (cursor.moveToNext()) {
+                totais[cursor.getString(0)] = BigDecimal(cursor.getDouble(1))
+            }
+        }
+        return (0 until meses).map { i ->
+            val mes = mesInicial.plusMonths(i.toLong())
+            GastoMensal(mes, totais[mes.toString()] ?: BigDecimal.ZERO)
+        }
+    }
+
+    // Retorna o total gasto por categoria no mês informado, da maior para a menor.
+    fun getGastosPorCategoria(mes: YearMonth): List<CategoriaMaisGasta> {
+        val categorias = mutableListOf<CategoriaMaisGasta>()
+        val db = this.readableDatabase
+        val query = """
+            SELECT T1.$KEY_DESCRICAO_CATEGORIA, SUM(T2.$KEY_VALOR_CONTA) as total, COUNT(T2.$KEY_ID_CONTA) as quantidade
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = ?
+            GROUP BY T1.$KEY_ID_CATEGORIA
+            ORDER BY total DESC
+        """
+        db.rawQuery(query, arrayOf(mes.toString())).use { cursor ->
+            while (cursor.moveToNext()) {
+                val categoria = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA))
+                val total = cursor.getDouble(cursor.getColumnIndexOrThrow("total"))
+                val quantidade = cursor.getInt(cursor.getColumnIndexOrThrow("quantidade"))
+                categorias.add(CategoriaMaisGasta(categoria, BigDecimal(total), quantidade))
+            }
+        }
+        return categorias
+    }
+
+    // Retorna o total gasto em cada dia do mês informado (chave = dia do mês). Dias sem gasto não aparecem.
+    fun getGastosDiarios(mes: YearMonth, categoriaId: Long? = null): Map<Int, BigDecimal> {
+        val gastos = mutableMapOf<Int, BigDecimal>()
+        val db = this.readableDatabase
+        val query = """
+            SELECT CAST(strftime('%d', T2.$KEY_DATA_CONTA) AS INTEGER) AS dia, SUM(T2.$KEY_VALOR_CONTA) AS total
+            FROM $TABLE_CATEGORIAS T1
+            INNER JOIN $TABLE_CONTAS T2 ON T1.$KEY_ID_CATEGORIA = T2.$KEY_CATEGORIA_CONTA
+            WHERE T1.$KEY_TIPO_CATEGORIA = '${TipoCategoria.Perda.name}'
+            AND strftime('%Y-%m', T2.$KEY_DATA_CONTA) = ?
+            ${filtroCategoria(categoriaId)}
+            GROUP BY dia
+        """
+        db.rawQuery(query, arrayOf(mes.toString())).use { cursor ->
+            while (cursor.moveToNext()) {
+                gastos[cursor.getInt(0)] = BigDecimal(cursor.getDouble(1))
+            }
+        }
+        return gastos
     }
 
     // Retorna os lançamentos do mes atual.

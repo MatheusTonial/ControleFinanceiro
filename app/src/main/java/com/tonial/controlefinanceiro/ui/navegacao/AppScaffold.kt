@@ -42,6 +42,7 @@ import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.model.ContaRecorrenteViewModel
 import com.tonial.controlefinanceiro.model.FluxoViewModel
 import com.tonial.controlefinanceiro.model.ListaContasRecorrentesViewModel
+import com.tonial.controlefinanceiro.ui.analise.AnaliseScreen
 import com.tonial.controlefinanceiro.ui.dashboard.DashboardScreen
 import com.tonial.controlefinanceiro.ui.historico.HistoricoScreen
 import com.tonial.controlefinanceiro.ui.splash.SplashScreen
@@ -64,6 +65,7 @@ import kotlin.system.exitProcess
 object Routes {
     const val SPLASH = "splash"
     const val DASHBOARD = "dashboard"
+    const val ANALISE = "analise"
     const val LANCAMENTO_CONTA = "lancamento_conta"
     const val CADASTRO_CATEGORIA = "cadastro_categoria"
     const val HISTORICO = "historico"
@@ -226,6 +228,16 @@ fun AppScaffold(
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
                 NavigationDrawerItem(
+                    label = { Text(text = "📊 Análise") },
+                    selected = currentRoute == Routes.ANALISE,
+                    onClick = {
+                        navController.navigate(Routes.ANALISE) { launchSingleTop = true }
+                        scope.launch { drawerState.close() }
+                    },
+                    colors = itemColors,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
                     label = { Text(text = "📆 Histórico de lançamentos") },
                     selected = currentRoute == Routes.HISTORICO,
                     onClick = {
@@ -357,6 +369,9 @@ fun AppScaffold(
                         navController.navigate(route)
                     }
                 )
+            }
+            composable(Routes.ANALISE) {
+                AnaliseScreen(drawerState = drawerState)
             }
             composable(Routes.HISTORICO) {
                 HistoricoScreen(
