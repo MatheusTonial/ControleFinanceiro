@@ -2,6 +2,7 @@
 <resources>
     <color name="terraform_primary">#BD4B00</color>
     <color name="terraform_surface">#FBFBE2</color>
+    <color name="terraform_widget_surface">@color/terraform_surface</color>
     <color name="terraform_secondary">#3E2723</color>
     <color name="terraform_tertiary">#8D6E63</color>
     <color name="terraform_musgo">#4E6B3F</color>

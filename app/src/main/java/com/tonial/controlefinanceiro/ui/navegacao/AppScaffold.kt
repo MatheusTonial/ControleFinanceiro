@@ -57,9 +57,12 @@ import com.tonial.controlefinanceiro.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import kotlin.system.exitProcess
 
 object Routes {
@@ -130,6 +133,22 @@ fun AppScaffold(
             text = { Text("Faz $daysSinceLastBackup dias desde o seu último backup. Considere fazer um novo backup para proteger seus dados.") },
             confirmButton = {
                 Button(onClick = { showBackupAlert = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    viewModel.avisoLimite?.let { aviso ->
+        val localeBR = Locale.forLanguageTag("pt-BR")
+        val nomeMes = aviso.mes.month.getDisplayName(TextStyle.FULL, localeBR)
+        val total = NumberFormat.getCurrencyInstance(localeBR).format(aviso.total)
+        AlertDialog(
+            onDismissRequest = { viewModel.dispensarAvisoLimite() },
+            title = { Text("Limite de lançamentos atingido") },
+            text = { Text("${aviso.categoria} está com ${aviso.quantidade} lançamentos em $nomeMes de ${aviso.mes.year} (limite: ${aviso.limite}).\n\nTotal desses lançamentos: $total") },
+            confirmButton = {
+                Button(onClick = { viewModel.dispensarAvisoLimite() }) {
                     Text("OK")
                 }
             }

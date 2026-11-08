@@ -107,6 +107,16 @@ fun TelaCategoria(
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 colors = textFieldColors
             )
+            OutlinedTextField(
+                value = viewModel.limite_categoria,
+                onValueChange = { viewModel.onLimiteCategoriaChange(it) },
+                label = { Text("Limite de lançamentos no mês") },
+                supportingText = { Text("Opcional. Avisa ao salvar quando atingir esse número.") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                colors = textFieldColors
+            )
             Button(
                 onClick = onSaveClick,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp)

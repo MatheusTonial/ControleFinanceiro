@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tonial.controlefinanceiro.database.DatabaseHandler
+import com.tonial.controlefinanceiro.entity.AvisoLimiteCategoria
 import com.tonial.controlefinanceiro.entity.Categorias
 import com.tonial.controlefinanceiro.entity.Contas
 import com.tonial.controlefinanceiro.entity.TipoCategoria
@@ -14,6 +15,7 @@ import com.tonial.controlefinanceiro.widget.WidgetUpdateWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.YearMonth
 
 class FluxoViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -24,6 +26,7 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
     var descricao_categoria by mutableStateOf("")
     var tipo_categoria by mutableStateOf(TipoCategoria.Perda)
     var ordem_categoria by mutableStateOf(99)
+    var limite_categoria by mutableStateOf("")
 
     fun onDescricaoCategoriaChange(newValue: String) {
         descricao_categoria = newValue
@@ -37,11 +40,16 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
         ordem_categoria = newValue
     }
 
+    fun onLimiteCategoriaChange(newValue: String) {
+        limite_categoria = newValue.filter { it.isDigit() }
+    }
+
     fun limpaCategoria(){
         categoriaId = null
         descricao_categoria = ""
         tipo_categoria = TipoCategoria.Perda
         ordem_categoria = 99
+        limite_categoria = ""
     }
 
     fun loadCategoria(id: Long) {
@@ -51,6 +59,7 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
                 descricao_categoria = categoria.descricao
                 tipo_categoria = categoria.tipo
                 ordem_categoria = categoria.ordem
+                limite_categoria = categoria.limiteLancamentos?.toString() ?: ""
             }
         }
     }
@@ -61,7 +70,9 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
                 _id = categoriaId ?: 0,
                 descricao = descricao_categoria,
                 tipo = tipo_categoria,
-                ordem = ordem_categoria
+                ordem = ordem_categoria,
+                // Vazio ou zero significa categoria sem limite.
+                limiteLancamentos = limite_categoria.toIntOrNull()?.takeIf { it > 0 }
             )
             if (categoriaId == null) {
                 dbHandler.addCategoria(categoria)
@@ -83,6 +94,11 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
     var categoria_id_conta by mutableStateOf<Long?>(null)
     var lancamentoUnico_conta by mutableStateOf(false)
     var mensagemErro by mutableStateOf<String?>(null)
+    var avisoLimite by mutableStateOf<AvisoLimiteCategoria?>(null)
+
+    fun dispensarAvisoLimite() {
+        avisoLimite = null
+    }
 
     fun loadConta(id: Long) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -165,18 +181,36 @@ class FluxoViewModel(application: Application) : AndroidViewModel(application) {
                 categoriaId = categoria_id_conta!!,
                 tipo_lancamento = tipoLancamento
             )
+            val original = contaId?.let { dbHandler.getContaById(it) }
             if (contaId == null) {
                 dbHandler.addConta(conta)
             } else {
                 dbHandler.updateConta(conta)
             }
-            
+
+            // Editar um lançamento sem trocar a categoria ou o mês não altera a contagem, então não avisa de novo.
+            if (original == null || original.categoriaId != conta.categoriaId || YearMonth.from(original.data) != YearMonth.from(conta.data)) {
+                verificarLimiteCategoria(conta)
+            }
+
+
             // Atualiza o widget após salvar o lançamento
             WidgetUpdateWorker.enqueue(getApplication())
 
             limpaConta()
         }
         return true
+    }
+
+    // Só avisa: o lançamento já foi salvo e o limite não bloqueia nada.
+    private fun verificarLimiteCategoria(conta: Contas) {
+        val categoria = dbHandler.getCategoriaById(conta.categoriaId) ?: return
+        val limite = categoria.limiteLancamentos ?: return
+        val mes = YearMonth.from(conta.data)
+        val (quantidade, total) = dbHandler.getResumoCategoriaNoMes(categoria._id, mes)
+        if (quantidade >= limite) {
+            avisoLimite = AvisoLimiteCategoria(categoria.descricao, limite, quantidade, total, mes)
+        }
     }
 
     //endregion Conta

@@ -2,6 +2,7 @@ package com.tonial.controlefinanceiro.database
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.tonial.controlefinanceiro.entity.Categorias
@@ -21,8 +22,8 @@ class DatabaseHandler private constructor(context: Context) :
     companion object {
         const val DATABASE_NAME = "bdfile.sqlite"
 
-        // A versão do banco de dados foi incrementada para 6 para adicionar a tabela de gastos recorrentes.
-        private const val DATABASE_VERSION = 6
+        // A versão do banco de dados foi incrementada para 7 para adicionar o limite de lançamentos da categoria.
+        private const val DATABASE_VERSION = 7
 
         // Constantes para o tipo de lançamento.
         const val TIPO_LANCAMENTO_UNICO = "unico"
@@ -47,6 +48,7 @@ class DatabaseHandler private constructor(context: Context) :
         private const val KEY_DESCRICAO_CATEGORIA = "descricao"
         private const val KEY_TIPO_CATEGORIA = "tipo"
         private const val KEY_ORDEM_CATEGORIA = "ordem"
+        private const val KEY_LIMITE_CATEGORIA = "limite_lancamentos"
 
         // Tabela Contas
         private const val TABLE_CONTAS = "contas"
@@ -67,7 +69,8 @@ class DatabaseHandler private constructor(context: Context) :
                 "$KEY_ID_CATEGORIA INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "$KEY_DESCRICAO_CATEGORIA TEXT," +
                 "$KEY_TIPO_CATEGORIA TEXT," +
-                "$KEY_ORDEM_CATEGORIA INTEGER)"
+                "$KEY_ORDEM_CATEGORIA INTEGER," +
+                "$KEY_LIMITE_CATEGORIA INTEGER)"
         db?.execSQL(createCategoriaTable)
 
         // Inseri algumas categorias iniciais para perda.
@@ -175,6 +178,11 @@ class DatabaseHandler private constructor(context: Context) :
                 "FOREIGN KEY($KEY_CATEGORIA_CONTA) REFERENCES $TABLE_CATEGORIAS($KEY_ID_CATEGORIA))"
             db?.execSQL(createGastosRecorrentesTable)
         }
+
+        // Adiciona o limite de lançamentos da categoria se a versão for anterior a 7.
+        if (oldVersion < 7) {
+            db?.execSQL("ALTER TABLE $TABLE_CATEGORIAS ADD COLUMN $KEY_LIMITE_CATEGORIA INTEGER;")
+        }
     }
 
     // Adiciona uma nova categoria ao banco de dados.
@@ -184,6 +192,7 @@ class DatabaseHandler private constructor(context: Context) :
             put(KEY_DESCRICAO_CATEGORIA, categoria.descricao)
             put(KEY_TIPO_CATEGORIA, categoria.tipo.name)
             put(KEY_ORDEM_CATEGORIA, categoria.ordem)
+            put(KEY_LIMITE_CATEGORIA, categoria.limiteLancamentos)
         }
         return db.insert(TABLE_CATEGORIAS, null, values)
     }
@@ -195,6 +204,7 @@ class DatabaseHandler private constructor(context: Context) :
             put(KEY_DESCRICAO_CATEGORIA, categoria.descricao)
             put(KEY_TIPO_CATEGORIA, categoria.tipo.name)
             put(KEY_ORDEM_CATEGORIA, categoria.ordem)
+            put(KEY_LIMITE_CATEGORIA, categoria.limiteLancamentos)
         }
         return db.update(TABLE_CATEGORIAS, values, "$KEY_ID_CATEGORIA = ?", arrayOf(categoria._id.toString()))
     }
@@ -215,11 +225,36 @@ class DatabaseHandler private constructor(context: Context) :
                     _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CATEGORIA)),
                     descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA)),
                     tipo = TipoCategoria.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))),
-                    ordem = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ORDEM_CATEGORIA))
+                    ordem = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ORDEM_CATEGORIA)),
+                    limiteLancamentos = getLimiteLancamentos(cursor)
                 )
             }
         }
         return categoria
+    }
+
+    // Lê o limite de lançamentos da linha atual (null = categoria sem limite).
+    private fun getLimiteLancamentos(cursor: Cursor): Int? {
+        val index = cursor.getColumnIndexOrThrow(KEY_LIMITE_CATEGORIA)
+        return if (cursor.isNull(index)) null else cursor.getInt(index)
+    }
+
+    // Retorna a quantidade de lançamentos da categoria no mês informado e a soma dos valores deles.
+    fun getResumoCategoriaNoMes(categoriaId: Long, mes: YearMonth): Pair<Int, BigDecimal> {
+        val db = this.readableDatabase
+        val query = """
+            SELECT COUNT($KEY_ID_CONTA), SUM($KEY_VALOR_CONTA)
+            FROM $TABLE_CONTAS
+            WHERE $KEY_CATEGORIA_CONTA = ?
+            AND strftime('%Y-%m', $KEY_DATA_CONTA) = ?
+        """
+        var resumo = Pair(0, BigDecimal.ZERO)
+        db.rawQuery(query, arrayOf(categoriaId.toString(), mes.toString())).use { cursor ->
+            if (cursor.moveToFirst()) {
+                resumo = Pair(cursor.getInt(0), BigDecimal(cursor.getDouble(1)))
+            }
+        }
+        return resumo
     }
 
     // Retorna todas as categorias cadastradas, ordenadas pela ordem e ID.
@@ -234,7 +269,8 @@ class DatabaseHandler private constructor(context: Context) :
                         _id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID_CATEGORIA)),
                         descricao = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DESCRICAO_CATEGORIA)),
                         tipo = TipoCategoria.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(KEY_TIPO_CATEGORIA))),
-                        ordem = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ORDEM_CATEGORIA))
+                        ordem = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ORDEM_CATEGORIA)),
+                        limiteLancamentos = getLimiteLancamentos(cursor)
                     )
                     categoriasList.add(categoria)
                 } while (cursor.moveToNext())
