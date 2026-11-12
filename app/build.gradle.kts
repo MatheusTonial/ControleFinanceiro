@@ -14,8 +14,8 @@ android {
         applicationId = "com.tonial.controlefinanceiro"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "9.0"
+        versionCode = 11
+        versionName = "9.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

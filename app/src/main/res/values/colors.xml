@@ -7,6 +7,10 @@
     <color name="terraform_tertiary">#8D6E63</color>
     <color name="terraform_musgo">#4E6B3F</color>
 
+    <!-- Ícone do app: padrão dos meus apps (glifo creme sobre laranja), fixo no claro e no escuro. -->
+    <color name="ic_money_background">#BD4B00</color>
+    <color name="ic_money_glyph">#FBFBE2</color>
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="green_gasto">#3CCE43</color>
