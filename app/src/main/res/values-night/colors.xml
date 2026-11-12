@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="terraform_primary">#BD4B00</color>
+    <color name="terraform_surface">#1E1512</color>
+    <!-- Mesmo marrom dos cards do app (TerraformSurfaceContainerHighestDark) -->
+    <color name="terraform_widget_surface">#3F302A</color>
+    <color name="terraform_secondary">#D7CCC8</color>
+    <color name="terraform_tertiary">#BCAAA4</color>
+    <color name="terraform_musgo">#6B8C5A</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="green_gasto">#3CCE43</color>
+    <color name="red_gasto">#E23124</color>
+</resources>
